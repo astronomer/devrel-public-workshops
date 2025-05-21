@@ -14,7 +14,7 @@ Sample solutions for DAG-writing related exercises can be found in the [`dags/so
 > [!TIP]
 > Consider using [Ask Astro](ask.astronomer.io) if you need additional guidance with any of the exercises.
 
-For additional Airflow 3.0 examples, see (our repo)[https://github.com/astronomer/airflow-3-demos].
+For additional Airflow 3.0 examples, see [our repo](https://github.com/astronomer/airflow-3-demos).
 
 ### Setup
 
