@@ -115,7 +115,7 @@ In this repo, `raw_zen_quotes` and `selected_quotes` are part of an asset-orient
 
    selected_quotes = context["ti"].xcom_pull(
       dag_id="selected_quotes",
-      task_ids=["selected_quotes"],
+      task_ids="selected_quotes",
       key="return_value",
       include_prior_dates=True,
    )
@@ -156,7 +156,7 @@ For ETL pipelines that are time-dependent, like this one in this example, you ma
 
 Let's say you just deployed these pipelines, and you need to create newsletters for the past couple of days.
 
-1. Start a backfill of the `raw_zen_quotes` DAG using the UI, by clicking the `Run Backfill` button on the DAG page. Make sure you have the DAG selected and not an individual DAG run.
+1. Start a backfill of the `raw_zen_quotes` DAG using the UI, by clicking the blue `Trigger` button and selecting `Backfill`. (see: [Backfill](https://www.astronomer.io/docs/learn/rerunning-dags#backfill))
 3. In the `Backfill` form, choose a date range and reprocessing behavior that triggers 2 runs.
 4. Start the backfill, and notice the progress bar in the UI (you may need to refresh the page). What is different about these runs in the grid?
 5. Notice what happened to the other downstream DAGs in your environment. Were they triggered as well?
