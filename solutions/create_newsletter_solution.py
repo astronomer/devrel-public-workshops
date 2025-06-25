@@ -70,7 +70,7 @@ def formatted_newsletter(context: dict) -> None:
         conn_id=OBJECT_STORAGE_CONN_ID,
     )
 
-    date = context["dag_run"].run_after.strftime("%Y-%m-%d")
+    date = context["dag_run"].logical_date.strftime("%Y-%m-%d")
 
     selected_quotes = context["ti"].xcom_pull(
         dag_id="selected_quotes",

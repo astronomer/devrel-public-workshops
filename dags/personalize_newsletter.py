@@ -125,7 +125,7 @@ def personalize_newsletter():
     ) -> None:
         from airflow.sdk import ObjectStoragePath
 
-        date = context["dag_run"].run_after.strftime(
+        date = context["dag_run"].logical_date.strftime(
             "%Y-%m-%d"
         )
 

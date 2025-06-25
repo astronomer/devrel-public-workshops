@@ -150,7 +150,7 @@ def personalize_newsletter_genai():
         motivation = user["motivation"]
         favorite_sci_fi_character = user["favorite_sci_fi_character"]
         series = favorite_sci_fi_character.split(" (")[1].replace(")", "")
-        date = context["dag_run"].run_after.strftime("%Y-%m-%d")
+        date = context["dag_run"].logical_date.strftime("%Y-%m-%d")
 
         object_storage_path = ObjectStoragePath(
             f"{OBJECT_STORAGE_SYSTEM}://{OBJECT_STORAGE_PATH_NEWSLETTER}",
@@ -223,7 +223,7 @@ def personalize_newsletter_genai():
 
         from airflow.io.path import ObjectStoragePath
 
-        date = context["dag_run"].run_after.strftime("%Y-%m-%d")
+        date = context["dag_run"].logical_date.strftime("%Y-%m-%d")
 
         id = user["id"]
         name = user["name"]

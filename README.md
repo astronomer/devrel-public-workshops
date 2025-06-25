@@ -111,7 +111,7 @@ In this repo, `raw_zen_quotes` and `selected_quotes` are part of an asset-orient
       conn_id=OBJECT_STORAGE_CONN_ID,
    )
 
-   date = context["dag_run"].run_after.strftime("%Y-%m-%d")
+   date = context["dag_run"].logical_date.strftime("%Y-%m-%d")
 
    selected_quotes = context["ti"].xcom_pull(
       dag_id="selected_quotes",
