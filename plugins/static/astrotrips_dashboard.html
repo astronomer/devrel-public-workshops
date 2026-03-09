@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstroTrips Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root, [data-theme="dark"] {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2128;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --gold:      #f0ab00;
+      --green:     #3fb950;
+      --red:       #f85149;
+      --chart-grid: #21262d;
+    }
+
+    [data-theme="light"] {
+      --bg:        #f6f8fa;
+      --surface:   #ffffff;
+      --surface2:  #f0f3f6;
+      --border:    #d0d7de;
+      --text:      #1f2328;
+      --muted:     #6e7781;
+      --gold:      #9a6700;
+      --green:     #1a7f37;
+      --red:       #cf222e;
+      --chart-grid: #e8ecf0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 24px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-icon { font-size: 28px; }
+    .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .header h1 span { color: var(--gold); }
+    .header-right { display: flex; align-items: flex-end; flex-direction: column; gap: 8px; }
+    .header-meta { text-align: right; }
+    .header-meta .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .header-meta .value { font-size: 13px; color: var(--text); margin-top: 2px; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+
+    /* ── Theme toggle ── */
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 10px;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.6;
+    }
+    .theme-btn:hover { background: var(--border); color: var(--text); }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .stat-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent-color, var(--gold));
+      opacity: 0.7;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .stat-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ── Charts row ── */
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+    .chart-wrap { position: relative; }
+
+    /* ── Planet cards ── */
+    .planets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .planet-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 3px solid var(--planet-color, var(--border));
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .planet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .planet-icon { font-size: 24px; }
+    .planet-name { font-size: 16px; font-weight: 700; }
+    .planet-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .metric { background: var(--surface2); border-radius: 6px; padding: 10px 12px; transition: background 0.2s; }
+    .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .metric-value { font-size: 17px; font-weight: 700; }
+    .planet-revenue { background: var(--surface2); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; transition: background 0.2s; }
+    .planet-revenue .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .planet-revenue .metric-value { font-size: 20px; font-weight: 700; }
+    .weather-box {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .weather-item { text-align: center; }
+    .weather-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+    .weather-value { font-size: 13px; font-weight: 600; }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      overflow-x: auto;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .table-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 12px; font-size: 13px; }
+    .planet-badge { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+    .planet-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .empty { text-align: center; padding: 60px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="header-icon">🚀</span>
+    <div>
+      <h1><span>AstroTrips</span> Dashboard</h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" id="theme-toggle" title="Toggle light/dark mode">☀️</button>
+    <div class="header-meta">
+      <div class="label"><span class="dot"></span>Live Dashboard</div>
+      <div class="value" id="sync-time">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-card" style="--accent-color: var(--gold)">
+    <div class="stat-label">Net Revenue (latest)</div>
+    <div class="stat-value" id="stat-revenue">--</div>
+    <div class="stat-sub" id="stat-revenue-sub"></div>
+  </div>
+  <div class="stat-card" style="--accent-color: #38bdf8">
+    <div class="stat-label">Total Passengers</div>
+    <div class="stat-value" id="stat-passengers">--</div>
+    <div class="stat-sub" id="stat-passengers-sub"></div>
+  </div>
+  <div class="stat-card" style="--accent-color: var(--green)">
+    <div class="stat-label">Active Trips</div>
+    <div class="stat-value" id="stat-active">--</div>
+    <div class="stat-sub" id="stat-active-sub"></div>
+  </div>
+  <div class="stat-card" style="--accent-color: var(--muted)">
+    <div class="stat-label">Completed Trips</div>
+    <div class="stat-value" id="stat-completed">--</div>
+    <div class="stat-sub" id="stat-completed-sub"></div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-card">
+    <div class="chart-title">Revenue by Planet</div>
+    <div class="chart-wrap"><canvas id="chart-planet" height="220"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Net Revenue Trend</div>
+    <div class="chart-wrap"><canvas id="chart-trend" height="220"></canvas></div>
+  </div>
+</div>
+
+<div class="planets" id="planet-cards"></div>
+
+<div class="table-card">
+  <div class="table-title">Report History</div>
+  <div id="table-container"></div>
+</div>
+
+<script>
+const DATA = __REPORT_DATA__;
+
+const PLANET_COLORS = { Moon: '#94a3b8', Mars: '#f97316', Europa: '#38bdf8' };
+const PLANET_EMOJIS = { Moon: '🌙', Mars: '🔴', Europa: '🔵' };
+
+function fmt(n)  { return n == null ? '—' : '$' + Number(n).toLocaleString(); }
+function fmtN(n) { return n == null ? '—' : Number(n).toLocaleString(); }
+function fmtT(c) { return c == null ? '—' : c.toFixed(1) + '°C'; }
+function fmtP(r) { return r == null ? '—' : Math.round(r * 100) + '%'; }
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// ── Parse and group ──────────────────────────────────────────────────
+const report  = DATA.report  || [];
+const weather = DATA.weather || [];
+
+const byDate = {};
+report.forEach(([date, planet, pass, active, comp, gross, disc, net, paid]) => {
+  if (!byDate[date]) byDate[date] = {};
+  byDate[date][planet] = { pass, active, comp, gross, disc, net, paid };
+});
+
+const dates      = Object.keys(byDate).sort();
+const planets    = [...new Set(report.map(r => r[1]))].sort();
+const latestDate = dates[dates.length - 1];
+const latest     = byDate[latestDate] || {};
+const trendDates = dates.slice(-30);
+
+const weatherMap = {};
+weather.forEach(([planet, date, temp, storm, vis]) => {
+  weatherMap[planet] = { date, temp, storm, vis };
+});
+
+// ── Stats (static, no theme dependency) ─────────────────────────────
+const totalRev  = planets.reduce((s, p) => s + (latest[p]?.net   || 0), 0);
+const totalPass = planets.reduce((s, p) => s + (latest[p]?.pass  || 0), 0);
+const totalAct  = planets.reduce((s, p) => s + (latest[p]?.active || 0), 0);
+const totalComp = planets.reduce((s, p) => s + (latest[p]?.comp  || 0), 0);
+
+document.getElementById('stat-revenue').textContent     = fmt(totalRev);
+document.getElementById('stat-revenue-sub').textContent = latestDate ? 'as of ' + latestDate : '';
+document.getElementById('stat-passengers').textContent  = fmtN(totalPass);
+document.getElementById('stat-passengers-sub').textContent = 'across all routes';
+document.getElementById('stat-active').textContent      = fmtN(totalAct);
+document.getElementById('stat-active-sub').textContent  = 'currently in-flight';
+document.getElementById('stat-completed').textContent   = fmtN(totalComp);
+document.getElementById('stat-completed-sub').textContent = 'missions accomplished';
+
+document.getElementById('sync-time').textContent = DATA.synced_at
+  ? 'Synced: ' + new Date(DATA.synced_at).toLocaleString()
+  : 'Synced: direct DB read';
+
+if (report.length === 0) {
+  document.getElementById('planet-cards').innerHTML =
+    '<p class="empty" style="grid-column:1/-1">No report data yet. Run the setup and daily_report Dags first.</p>';
+}
+
+// ── Charts (theme-aware, re-rendered on toggle) ───────────────────────
+let chartPlanet = null;
+let chartTrend  = null;
+
+function renderCharts() {
+  const muted    = cssVar('--muted');
+  const text     = cssVar('--text');
+  const grid     = cssVar('--chart-grid');
+
+  if (chartPlanet) chartPlanet.destroy();
+  if (chartTrend)  chartTrend.destroy();
+
+  chartPlanet = new Chart(document.getElementById('chart-planet'), {
+    type: 'bar',
+    data: {
+      labels: planets.map(p => (PLANET_EMOJIS[p] || '') + ' ' + p),
+      datasets: [{
+        label: 'Net Revenue',
+        data: planets.map(p => latest[p]?.net || 0),
+        backgroundColor: planets.map(p => (PLANET_COLORS[p] || '#8b949e') + 'cc'),
+        borderColor:     planets.map(p =>  PLANET_COLORS[p] || '#8b949e'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+      },
+      scales: {
+        x: {
+          ticks: { color: muted, callback: v => '$' + (v/1000).toFixed(0) + 'k' },
+          grid:  { color: grid },
+        },
+        y: { ticks: { color: text, font: { size: 13 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  chartTrend = new Chart(document.getElementById('chart-trend'), {
+    type: 'line',
+    data: {
+      labels: trendDates,
+      datasets: planets.map(p => ({
+        label: p,
+        data: trendDates.map(d => byDate[d]?.[p]?.net || 0),
+        borderColor:     PLANET_COLORS[p] || '#8b949e',
+        backgroundColor: (PLANET_COLORS[p] || '#8b949e') + '18',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.3,
+        fill: true,
+      }))
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: muted, font: { size: 12 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.raw) } }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: muted,
+            maxRotation: 0,
+            maxTicksLimit: 7,
+            callback: (_, i) => trendDates[i]?.slice(5)
+          },
+          grid: { color: grid }
+        },
+        y: {
+          ticks: { color: muted, callback: v => '$' + (v/1000).toFixed(0) + 'k' },
+          grid: { color: grid }
+        }
+      }
+    }
+  });
+}
+
+// ── Planet cards ──────────────────────────────────────────────────────
+const planetsEl = document.getElementById('planet-cards');
+planets.forEach(p => {
+  const d  = latest[p] || {};
+  const w  = weatherMap[p] || {};
+  const c  = PLANET_COLORS[p] || '#8b949e';
+  const em = PLANET_EMOJIS[p] || '🪐';
+  const stormColor = w.storm > 0.6 ? 'var(--red)' : w.storm > 0.3 ? 'var(--gold)' : 'var(--green)';
+
+  planetsEl.innerHTML += `
+    <div class="planet-card" style="--planet-color:${c}">
+      <div class="planet-header">
+        <span class="planet-icon">${em}</span>
+        <span class="planet-name" style="color:${c}">${p}</span>
+      </div>
+      <div class="planet-revenue">
+        <div class="metric-label">Net Revenue</div>
+        <div class="metric-value" style="color:${c}">${fmt(d.net)}</div>
+      </div>
+      <div class="planet-metrics">
+        <div class="metric">
+          <div class="metric-label">Passengers</div>
+          <div class="metric-value">${fmtN(d.pass)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Active / Done</div>
+          <div class="metric-value">${fmtN(d.active)} / ${fmtN(d.comp)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Gross Fare</div>
+          <div class="metric-value" style="font-size:14px">${fmt(d.gross)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Discounts</div>
+          <div class="metric-value" style="font-size:14px;color:var(--red)">${fmt(d.disc)}</div>
+        </div>
+      </div>
+      ${w.temp != null ? `
+      <div class="weather-box">
+        <div class="weather-item">
+          <span class="weather-label">Temp</span>
+          <span class="weather-value">${fmtT(w.temp)}</span>
+        </div>
+        <div class="weather-item">
+          <span class="weather-label">Storm Risk</span>
+          <span class="weather-value" style="color:${stormColor}">${fmtP(w.storm)}</span>
+        </div>
+        <div class="weather-item">
+          <span class="weather-label">Visibility</span>
+          <span class="weather-value">${w.vis || '—'}</span>
+        </div>
+      </div>` : `<div style="padding-top:12px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;text-align:center">No weather data</div>`}
+    </div>`;
+});
+
+// ── Table ─────────────────────────────────────────────────────────────
+const tableEl = document.getElementById('table-container');
+const allRows = [...report].reverse().slice(0, 60);
+
+if (allRows.length === 0) {
+  tableEl.innerHTML = '<p class="empty">No data yet.</p>';
+} else {
+  tableEl.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th><th>Planet</th>
+          <th class="num">Passengers</th><th class="num">Active</th><th class="num">Completed</th>
+          <th class="num">Gross</th><th class="num">Discounts</th>
+          <th class="num">Net</th><th class="num">Paid</th>
+        </tr>
+      </thead>
+      <tbody>${allRows.map(([date, planet, pass, active, comp, gross, disc, net, paid]) => {
+        const c  = PLANET_COLORS[planet] || '#8b949e';
+        const em = PLANET_EMOJIS[planet] || '🪐';
+        return `<tr>
+          <td>${date}</td>
+          <td><span class="planet-badge"><span class="planet-dot" style="background:${c}"></span>${em} ${planet}</span></td>
+          <td class="num">${fmtN(pass)}</td>
+          <td class="num">${fmtN(active)}</td>
+          <td class="num">${fmtN(comp)}</td>
+          <td class="num">${fmt(gross)}</td>
+          <td class="num" style="color:var(--red)">${fmt(disc)}</td>
+          <td class="num" style="color:var(--gold);font-weight:600">${fmt(net)}</td>
+          <td class="num">${fmt(paid)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+// ── Theme toggle ──────────────────────────────────────────────────────
+const html    = document.documentElement;
+const btn     = document.getElementById('theme-toggle');
+const STORAGE = 'mc-theme';
+
+function applyTheme(theme) {
+  html.setAttribute('data-theme', theme);
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem(STORAGE, theme);
+  renderCharts();
+}
+
+btn.addEventListener('click', () => {
+  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// Init: restore saved preference, default dark
+applyTheme(localStorage.getItem(STORAGE) || 'dark');
+</script>
+</body>
+</html>

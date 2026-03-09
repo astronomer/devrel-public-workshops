@@ -111,6 +111,13 @@ The final setup step is to start a test deployment (a fully functional Airflow e
 > [!IMPORTANT]
 > Running this Dag resets and re-creates the database. If you encounter any issues in the following exercises, simply run this Dag again.
 
+> [!IMPORTANT]
+> **AstroTrips Dashboard**
+>
+> This workshop includes a prebuilt **AstroTrips Dashboard** to visualize the data. You can find it in the left navigation of the Airflow UI under **AstroTrips Dashboard**. It provides a visual overview of the data, including revenue by planet, trends over time, and current weather conditions for each destination. We will populate it with data during the workshop.
+>
+> Later in this workshops, you can run the `sync` Dag manually to update the dashboard. The `sync` Dag reads the latest report and weather data and makes it available to the dashboard. It is pre-provided in `dags/sync.py`, **please do not edit or delete it**.
+
 ---
 
 # Exercise 1: Build the daily report Dag
@@ -291,6 +298,13 @@ To understand how data quality checks protect your pipeline, let's intentionally
 4. Notice that the `daily_report` asset was **not** updated this time, the quality gate prevented bad data from being published.
 5. Change the threshold back to `3`, sync, and run the Dag once more to confirm it passes.
 
+## (Optional) See the data in the dashboard
+
+Time for some fun with data visualization. Now that our daily report Dag is running, let's look at an example of how it could be used in a real business context.
+
+1. Run the `sync` Dag.
+2. Open the _AstroTrips Dashboard_ in Airflow from the navigation bar on the left.
+
 ---
 
 # Challenge: Mission control
@@ -361,12 +375,15 @@ Another new feature of the new Airflow 3 UI is the integrated backfill functiona
 
     ![Trigger a backfill](doc/screenshot-backfill-1.png)
 
-Click on _Run Backfill_ and watch the magic happen.
+7. Click on _Run Backfill_ and watch the magic happen.
 
 > [!NOTE]
 > Take note of the backfill indicator on top of the page. It will automatically disappear once the reload is done.
 
 ![Backfill indicator](doc/screenshot-backfill-2.png)
+
+8. Now that we used the backfill feature to reload historical data, let's visualize it using the dashboard plugin! Run the `sync` Dag to sync the data.
+9. Open the _AstroTrips Dashboard_ in Airflow from the navigation bar on the left.
 
 > [!TIP]
 > Learn more about [rerunning Dags](https://www.astronomer.io/docs/learn/rerunning-dags).
