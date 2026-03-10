@@ -12,13 +12,9 @@ log = logging.getLogger("airflow.task")
 _DATA_CONN_ID = os.getenv("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
 _EXPERIMENT = "daily_catering_revenue"
 
-_MODEL_CONFIGS = [
-    {"model_type": "DecisionTreeRegressor", "max_depth": 2},
-    {"model_type": "LinearRegression"},
-    {"model_type": "Ridge", "alpha": 10.0},
-    {"model_type": "GradientBoostingRegressor", "n_estimators": 200, "max_depth": 10},
-]
+_MODEL_CONFIG_BASE = {"model_type": "LinearRegression"}
 
+# Add _MODEL_CONFIGS here
 
 def _model_name_for(model_type: str) -> str:
     """Derive a registry-friendly model name from a sklearn class name."""
@@ -235,7 +231,8 @@ def astro_trip_catering_revenue_prediction():
         )
 
     _extract = extract()
-    _train = train.partial(payload=_extract).expand(config=_MODEL_CONFIGS)
+    # Add dynamic task mapping here
+    _train = train(payload=_extract, config=_MODEL_CONFIG_BASE)
     _visualize = visualize.expand(results=_train)
     _promote = promote(_train)
     _visualize >> _promote

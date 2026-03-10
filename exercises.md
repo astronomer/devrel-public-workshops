@@ -204,7 +204,60 @@ After completing the feature engineering Dag, you can run the classification Dag
 
 ![MLOps plugin dessert prediction run](doc/screenshot-mlops-plugin-dessert-prediction-run-2.png)
 
-From 
+## Challenge: Mission control
+
+It is time for a challenge. The workshop provides a custom `MissionControlOperator` that generates an interstellar clearance code based on your implementation. Only if the Dag has the correct task IDs and dependencies will the code be valid.
+
+Within your `feature_engineering` Dag:
+
+1. Import the `MissionControlOperator` from `include.mission_control`.
+2. Create a task instance with `task_id="mission_control"`.
+3. Add it as the **last step** in the Dag (downstream of `save_features`).
+4. Sync your changes.
+5. Run the `setup` Dag to reset the duckdb , the `feature_engineering` Dag should run automatically afterwards based on the asset schedule.
+6. Check the `mission_control` task logs for your clearance code and share it!
+
+## Extra 1: Regression: Hyperparameters and dynamic task mapping
+
+Now that you know how many of each dessert to order (approximately), you also want to try to predict how much revenue you'll be making from the catering alone (food is expensive in space!).
+
+For this you create the `daily_catering_revenue` experiment based on a LinearRegression model to predict the daily revenue form catering per booking party. Looking at the pre-existing run you can see that the R2 score using only the `passengers` (more people eat more food) and `trip_length` (people on longer trips seem to eat a little more food per day) is not very good, it is only `0.43`. That means based on these two features you can predict about 43% of the variance in the daily revenue with a basic linear regression model. We can do better!
+
+1. In the Astro IDE, open `dags/astro_trip_catering_revenue_prediction.py`.
+
+2. Look at the `_MODEL_CONFIG_BASE` variable at the top of the file. It is a dictionary that contains the default configuration for one model (a linear regression). But what if we want to run the `train` task with different model types and hyperparameters? We can do that by using dynamic task mapping.
+
+3. Add the following list of model configurations at the top of the file below the `_MODEL_CONFIG_BASE` variable. This list contains the different model types and hyperparameters we want to try.
+
+```python
+_MODEL_CONFIGS = [
+    {"model_type": "DecisionTreeRegressor", "max_depth": 2},
+    {"model_type": "LinearRegression"},
+    {"model_type": "Ridge", "alpha": 10.0},
+    {"model_type": "GradientBoostingRegressor", "n_estimators": 200, "max_depth": 10},
+]
+```
+
+4. Update the call to the `train` task at the bottom of the Dag to use dynamic task mapping and the `_MODEL_CONFIGS` variable. The `payload` argument is the same for all tasks, this is the data fetched from the database in the `extract` task, the different model configurations will be passed to the `train` task as the `config` argument. One dynamically mapped task instance will be created at runtime for each element (dictionary) in the `_MODEL_CONFIGS` list.
+
+```python
+_train = train.partial(payload=_extract).expand(config=_MODEL_CONFIGS)
+```
+
+The downstream `visualize` task is already dynamically mapped over the output of the `train` task.
+
+5. Sync your changes and trigger the `astro_trip_catering_revenue_prediction` Dag. You might need to rerun the `setup` Dag (and `feature_engineering` Dag, which runs automatically based on the asset schedule) first to reset the database. In the graph view of the `astro_trip_catering_revenue_prediction` Dag you should now see four parallel `train` tasks.
+
+    ![Dynamic task mapping](doc/dynamic-task-mapping-graph.png)
+
+6. Check out the `daily_catering_revenue` experiment in the MLOps plugin. You should now see 5 runs in total, the base run from earlier and 4 new runs with different model types and hyperparameters.
+
+![MLOps plugin daily catering revenue run](doc/screenshot-mlops-plugin-daily-catering-revenue-run.png)
+
+7. Select the base run as well as the _best_ run (the one with the highest R2 score) and click on the **Compare** button to see the direct model comparison.
+
+![Compare runs](doc/compare-runs.png)
+
 
 ## Explore the project
 
