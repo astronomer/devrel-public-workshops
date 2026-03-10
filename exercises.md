@@ -97,10 +97,28 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 
 7. In the Airflow UI, run the `setup` Dag using the play button.
 
+    ![Run setup Dag](doc/screenshot-run-setup-dag.png)
+
 **Once the Dag run completes successfully, your database and pre-seeded ML tracking data are ready.**
 
 > [!IMPORTANT]
 > Running this Dag resets and re-creates the database. If you encounter any issues in the following exercises, simply run this Dag again.
+
+## The MLOps plugin 
+
+The [MLOps plugin](plugins/airflow-mlops-plugin) is a custom Airflow plugin that provides a dashboard that tracks ML experiments, runs, models, and visualizations. 
+
+1. Open the MLOps plugin in the Airflow sidebar by clicking on **Browse** and then **MLOps Plugin**.
+
+    ![Open MLOps plugin](doc/screenshot-open-mlops-plugin.png)
+
+After running the setup Dag, it is pre-seeded with one baseline run for each of the three ML use cases:
+
+- **Classification**: `dessert_prediction`
+- **Regression**: `daily_catering_revenue`
+- **Clustering**: `culinary_personas`
+
+
 
 ## Explore the project
 
