@@ -30,7 +30,6 @@ from airflow.plugins_manager import AirflowPlugin
 log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
-WORKSHOP_MODE = os.environ.get("MLOPS_WORKSHOP_MODE", "").lower() in ("true", "1", "yes")
 DB_PATH = os.path.join(
     os.environ.get("AIRFLOW_HOME", "/usr/local/airflow"),
     "include",
@@ -129,7 +128,6 @@ async def get_summary():
                 "runs": len(var_data.get("runs", [])),
                 "models": len(var_data.get("models", [])),
                 "plots": len(var_data.get("plots", [])),
-                "workshop_mode": WORKSHOP_MODE,
             }
 
         exp_count = (_db_first("SELECT count(*) FROM ml_experiments") or (0,))[0]
@@ -141,7 +139,6 @@ async def get_summary():
             "runs": run_count,
             "models": model_count,
             "plots": plot_count,
-            "workshop_mode": WORKSHOP_MODE,
         }
 
     return await asyncio.to_thread(_fetch)
