@@ -22,6 +22,9 @@ This workshop does not require any local Airflow installation. Instead, all deve
  - After creating an account, verifying your email, and logging in, choose _Personal_ in the first step.
  - Next, choose an _Organization_ and _Workspace_ name. These can be fictional names and you can change them later.
  - In the third step, click the small link at the bottom under the two boxes: _Or skip this and go to your workspace_.
+
+    ![Onboarding flow](doc/onboarding_flow.png)
+
  - You should now see the Astro platform UI.
 
 2. Open the _Astro IDE_ from the left navigation and select _Connect Git project..._
@@ -34,7 +37,11 @@ This workshop does not require any local Airflow installation. Instead, all deve
  - **AUTHENTICATION TYPE**: `None (public repository)`
  - Click _Connect_. The IDE will import and open the project for you.
 
+    ![Connect Git project](doc/screenshot-connect-git-project.png)
+
 **You now have the Astro IDE with the project ready to go.**
+
+![Astro IDE](doc/screenshot-astro-ide.png)
 
 > [!NOTE]
 > You don't need to commit your changes. If you want to keep your code after the workshop, fork the repository first.
@@ -49,13 +56,19 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 > [!NOTE]
 > The next two steps take place in the main Astro platform UI, not inside the Astro IDE. If you collapsed the sidebar, expand it to navigate.
 
+![Connections](doc/screenshot-connections.png)
+
 1. In Astro, navigate to _Environment_ → _Connections_ and click the _+ Connection_ button.
 2. In the dialog, search for and select _Generic_, then enter the following details:
+
+![Create connection](doc/screenshot-create-connection.png)
 
  - **CONNECTION ID**: `duckdb_astrotrips`
  - **TYPE**: `duckdb`
  - **HOST**: `include/astrotrips.duckdb`
  - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
+
+![Create connection](doc/screenshot-create-connection-2.png)
 
 3. Click _Create Connection_.
 
@@ -79,6 +92,9 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 > Scheduling is disabled by default for test deployments to prevent Dags from running automatically. This gives you maximum control during development and helps avoid unwanted side effects. However, for this workshop, we want Dags to be scheduled based on asset updates, so we enable scheduling accordingly.
 
 6. Once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
+
+    ![Open test deployment details](doc/screenshot-open-deployment-details.png)
+
 7. In the Airflow UI, run the `setup` Dag using the play button.
 
 **Once the Dag run completes successfully, your database and pre-seeded ML tracking data are ready.**
