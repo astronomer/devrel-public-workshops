@@ -112,13 +112,99 @@ The [MLOps plugin](plugins/airflow-mlops-plugin) is a custom Airflow plugin that
 
     ![Open MLOps plugin](doc/screenshot-open-mlops-plugin.png)
 
-After running the setup Dag, it is pre-seeded with one baseline run for each of the three ML use cases:
+After running the setup Dag, it is pre-seeded with one baseline run for each of the three ML use cases. 
 
 - **Classification**: `dessert_prediction`
 - **Regression**: `daily_catering_revenue`
 - **Clustering**: `culinary_personas`
 
+    ![MLOps plugin dashboard](doc/screenshot-mlops-plugin-dashboard.png)
 
+2. Click on the `dessert_prediction` entry to see more details about the run. 
+
+    ![MLOps plugin dessert prediction run](doc/screenshot-mlops-plugin-dessert-prediction-run.png)
+
+You can see that the model that was just trained on raw features (passengers, trip_length, base_multiplier) is not very good, it only has an accuracy of `0.50`! It gets there by just predicting the two most common dessert choices `Ktarian Chocolate Puff` and `Seldon's Psychohistory Swirl`. We should engineer some better features to improve the model!
+
+## Exercise 1: Complete and run the feature engineering Dag
+
+In this exercise you will complete the partial implementation of the feature engineering Dag to make our models more accurate.
+
+1. Open `dags/feature_engineering.py` in the Astro IDE.
+
+2. There are already several tasks that create derived features in this Dag. Let's add one to create compound interaction features (those start with `c_`). The code creating these features already exists in `include/feature_helpers.py` as the `compound_scores` function, we just need to import the function and call it in a new task. Add this task below the `booking_demographics` task.
+
+```python
+    @task
+    def compound_scores(trip_data, demo_data):
+        import pandas as pd
+        from include.feature_helpers import compound_scores as _fn
+
+        return _fn(
+            pd.DataFrame(trip_data),
+            pd.DataFrame(demo_data),
+        ).to_dict(orient="list")
+```
+
+3. All these new features need to be saved to the database. Add a new task to save the features to the database.
+
+```python
+    @task
+    def save_features(trip_data, demo_data, compound_data):
+        import pandas as pd
+        from airflow.sdk.bases.hook import BaseHook
+
+        keys = ["booking_id", "trip_day", "meal_type"]
+        dfs = [
+            pd.DataFrame(d) for d in [trip_data, demo_data, compound_data]
+        ]
+        result = dfs[0]
+        for df in dfs[1:]:
+            result = result.merge(df, on=keys, how="left")
+
+        hook = BaseHook.get_connection(_CONN_ID).get_hook()
+        conn = hook.get_conn()
+        conn.execute("DROP TABLE IF EXISTS booking_meal_features")
+        conn.register("_bmf", result)
+        conn.execute("CREATE TABLE booking_meal_features AS SELECT * FROM _bmf")
+        conn.unregister("_bmf")
+        conn.close()
+```
+
+4. Add the dependencies between the new tasks at the bottom of the Dag. The compound scores depend on both `trip_context` and `booking_demographics` and the save features task depends on `trip_context`, `booking_demographics` and `compound_scores`.
+
+```python
+    _compound_scores = compound_scores(_trip_context, _booking_demographics)
+    _save_features_ = save_features(
+        _trip_context,
+        _booking_demographics,
+        _compound_scores,
+    )
+```
+
+5. You will want the `feature_engineering` Dag to automatically run whenever you rerun the `setup` Dag. For this you can use asset-based scheduling. In the `@dag` decorator, add `schedule=[Asset("db_reload")]` to the Dag. This asset receives an update whenever the `seed_ml_tracking` task in the `setup` Dag completes successfully.
+
+```python
+@dag(tags=["features"], schedule=[Asset("db_reload")])
+def feature_engineering():
+```
+
+6. Sync your changes in the Astro IDE by clicking the **Sync to Test** button in the top right corner.
+
+![Sync changes](images/sync-changes.png)
+
+7. Trigger the `feature_engineering` Dag by clicking the **Trigger Dag** button in the top right corner. If you get an error, rerun the `setup` Dag and try again.
+
+## Exercise 2: Run the classification Dag with enriched features
+
+After completing the feature engineering Dag, you can run the classification Dag to see how the enriched features improve the model.
+
+1. In the Airflow UI, trigger the `space_dessert_classification` Dag.
+2. Once it has completed, go to the MLOps plugin and click **Experiments** and then on `dessert_prediction` to see the results of both runs.
+
+![MLOps plugin dessert prediction run](doc/screenshot-mlops-plugin-dessert-prediction-run-2.png)
+
+From 
 
 ## Explore the project
 

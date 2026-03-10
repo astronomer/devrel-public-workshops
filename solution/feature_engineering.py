@@ -56,7 +56,7 @@ def feature_engineering():
         ).to_dict(orient="list")
 
     @task
-    def save_booking_features(trip_data, demo_data, compound_data):
+    def save_features(trip_data, demo_data, compound_data):
         import pandas as pd
         from airflow.sdk.bases.hook import BaseHook
 
@@ -80,7 +80,7 @@ def feature_engineering():
     _trip_context = trip_context(_extract_bookings)
     _booking_demographics = booking_demographics(_extract_bookings)
     _compound_scores = compound_scores(_trip_context, _booking_demographics)
-    _save_booking_features = save_booking_features(
+    _save_features = save_features(
         _trip_context,
         _booking_demographics,
         _compound_scores,
