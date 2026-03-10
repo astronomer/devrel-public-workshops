@@ -12,7 +12,7 @@ Dessert classes:
 import logging
 import os
 
-from airflow.sdk import dag, task
+from airflow.sdk import Asset, dag, task
 
 log = logging.getLogger("airflow.task")
 
@@ -149,7 +149,7 @@ def space_dessert_classification():
 
         return plot_classification(results, MlopsTracker())
 
-    @task
+    @task(outlets=[Asset("plugin_sync")])
     def promote(results: dict):
         from include.mlops_tracking import MlopsTracker
 
@@ -167,6 +167,7 @@ def space_dessert_classification():
     _train = train(_extract)
     _visualize = visualize(_train)
     _promote = promote(_train)
+    _visualize >> _promote
 
 
 space_dessert_classification()

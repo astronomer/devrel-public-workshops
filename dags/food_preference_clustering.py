@@ -5,7 +5,7 @@ Dag to cluster customers by their dining behavior.
 import logging
 import os
 
-from airflow.sdk import dag, task
+from airflow.sdk import Asset, dag, task
 
 log = logging.getLogger("airflow.task")
 
@@ -152,7 +152,7 @@ def food_preference_clustering():
 
         return plot_clustering(results, MlopsTracker())
 
-    @task
+    @task(outlets=[Asset("plugin_sync")])
     def promote(results: dict):
         from include.mlops_tracking import MlopsTracker
 
@@ -170,6 +170,7 @@ def food_preference_clustering():
     _train = train(_extract)
     _visualize = visualize(_train)
     _promote = promote(_train)
+    _visualize >> _promote
 
 
 food_preference_clustering()
