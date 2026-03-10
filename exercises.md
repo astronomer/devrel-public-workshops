@@ -82,8 +82,7 @@ The MLOps Dashboard needs to know it's running in workshop mode so it can displa
 
 1. Navigate to the _Astro IDE_ and click _Start Test Deployment_ in the top right corner. The deployment takes 3-5 minutes to spin up.
 2. Once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
-3. In the Airflow UI, open the Dags view from the left menu you can see 5 Dags: `setup`, `feature_engineering`, `space_dessert_classification`, `astro_trip_catering_revenue_prediction`, and `food_preference_clustering`.
-4. Under the **Browse** category, you can opent eh MLOps plugin.
+3. In the Airflow UI, run the `setup` Dag using the play button.
 
 **Once the Dag run completes successfully, your database and pre-seeded ML tracking data are ready.**
 
