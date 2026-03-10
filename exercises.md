@@ -191,7 +191,7 @@ def feature_engineering():
 
 6. Sync your changes in the Astro IDE by clicking the **Sync to Test** button in the top right corner.
 
-![Sync changes](images/sync-changes.png)
+![Sync changes](docs/sync-changes.png)
 
 7. Trigger the `feature_engineering` Dag by clicking the **Trigger Dag** button in the top right corner. If you get an error, rerun the `setup` Dag and try again.
 
