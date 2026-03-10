@@ -11,7 +11,7 @@ log = logging.getLogger("airflow.task")
 
 _DATA_CONN_ID = os.getenv("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
 _EXPERIMENT = "culinary_personas"
-_NUM_CLUSTERS = 2
+_NUM_CLUSTERS = 2  # Adjust the cluster number here
 
 
 @dag(

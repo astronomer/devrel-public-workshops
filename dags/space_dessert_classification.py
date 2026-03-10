@@ -13,7 +13,6 @@ import logging
 import os
 
 from airflow.sdk import Asset, dag, task, chain
-from include.mission_control import MissionControlOperator
 
 log = logging.getLogger("airflow.task")
 
@@ -66,25 +65,45 @@ def space_dessert_classification():
 
         if enriched:
             feature_cols = [
-                "passengers", "trip_length", "base_multiplier",
-                "has_children", "child_ratio", "has_promo",
-                "is_business", "is_gold", "is_silver",
-                "is_gemini", "is_claude", "is_chatgpt", "is_llama",
-                "is_high_orbit", "is_low_orbit",
-                "is_all_inclusive", "is_budget_plan",
-                "c_gemini_highorbit_allinc_biz", "c_chatgpt_gold_kids", "c_llama_loworbit_budget_promo",
-                "c_claude_highorbit_allinc_nokids", "c_llama_loworbit_budget_nogold",
+                "passengers",
+                "trip_length",
+                "base_multiplier",
+                "has_children",
+                "child_ratio",
+                "has_promo",
+                "is_business",
+                "is_gold",
+                "is_silver",
+                "is_gemini",
+                "is_claude",
+                "is_chatgpt",
+                "is_llama",
+                "is_high_orbit",
+                "is_low_orbit",
+                "is_all_inclusive",
+                "is_budget_plan",
+                "c_gemini_highorbit_allinc_biz",
+                "c_chatgpt_gold_kids",
+                "c_llama_loworbit_budget_promo",
+                "c_claude_highorbit_allinc_nokids",
+                "c_llama_loworbit_budget_nogold",
             ]
         else:
             feature_cols = [
-                "passengers", "trip_length", "base_multiplier",
+                "passengers",
+                "trip_length",
+                "base_multiplier",
             ]
 
         X = df[feature_cols].values.astype(float)
         y = df["dessert_id"].values.astype(int)
 
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y,
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y,
         )
 
         model_config = {
@@ -99,7 +118,9 @@ def space_dessert_classification():
 
         metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred)),
-            "f1_weighted": float(f1_score(y_test, y_pred, average="weighted", zero_division=0)),
+            "f1_weighted": float(
+                f1_score(y_test, y_pred, average="weighted", zero_division=0)
+            ),
             "train_size": int(len(X_train)),
             "test_size": int(len(X_test)),
         }
@@ -121,10 +142,17 @@ def space_dessert_classification():
         tracker.log_params(run_id, params)
         tracker.log_metrics(run_id, metrics)
         model_version = tracker.log_model(
-            run_id, "dessert_predictor", "RandomForestClassifier", model,
+            run_id,
+            "dessert_predictor",
+            "RandomForestClassifier",
+            model,
         )
 
-        log.info("Classification metrics (enriched=%s): %s", enriched, json.dumps(metrics, indent=2))
+        log.info(
+            "Classification metrics (enriched=%s): %s",
+            enriched,
+            json.dumps(metrics, indent=2),
+        )
 
         return {
             "experiment": _EXPERIMENT,
@@ -155,21 +183,21 @@ def space_dessert_classification():
 
         tracker = MlopsTracker()
         tracker.promote_model(
-            results["model_name"], results["model_version"],
+            results["model_name"],
+            results["model_version"],
         )
         log.info(
             "Promoted %s v%s to production (accuracy=%.4f)",
-            results["model_name"], results["model_version"],
+            results["model_name"],
+            results["model_version"],
             results["metrics"]["accuracy"],
         )
-
-    _mission_control = MissionControlOperator(task_id="mission_control")
 
     _extract = extract()
     _train = train(_extract)
     _visualize = visualize(_train)
     _promote = promote(_train)
-    chain(_visualize, _promote, _mission_control)
+    chain(_visualize, _promote)
 
 
 space_dessert_classification()
