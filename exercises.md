@@ -30,7 +30,7 @@ This workshop does not require any local Airflow installation. Instead, all deve
  - **ACCOUNT**: `astronomer`
  - **REPOSITORY**: `devrel-public-workshops`
  - _Keep Astro Project Path empty_
- - **BRANCH**: `workshops/astrotrips/mlops`
+ - **BRANCH**: `workshops/astrotrips/mlops-101`
  - **AUTHENTICATION TYPE**: `None (public repository)`
  - Click _Connect_. The IDE will import and open the project for you.
 
@@ -65,16 +65,9 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 ## Start the test deployment and run the setup Dag
 
 1. Navigate to the _Astro IDE_ and click _Start Test Deployment_ in the top right corner. The deployment takes 3-5 minutes to spin up.
-2. While the deployment is starting, click the dropdown next to _Sync to Test_ and select _Test Deployment Details_.
-3. Navigate to the _Environment_ tab and click _Edit Deployment Variables_.
-4. In the popup, remove the `AIRFLOW__SCHEDULER__USE_JOB_SCHEDULE` variable to enable scheduling for the test deployment.
-5. Click _Update Environment Variables_.
-
-> [!NOTE]
-> Scheduling is disabled by default for test deployments to prevent Dags from running automatically.
-
-6. Back in the Astro IDE, once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
-7. In the Airflow UI, open the Dags view from the left menu and trigger the `setup` Dag using the play button.
+2. Once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
+3. In the Airflow UI, open the Dags view from the left menu you can see 5 Dags: `setup`, `feature_engineering`, `space_dessert_classification`, `astro_trip_catering_revenue_prediction`, and `food_preference_clustering`.
+4. Under the **Browse** category, you can opent eh MLOps plugin.
 
 **Once the Dag run completes successfully, your database and pre-seeded ML tracking data are ready.**
 

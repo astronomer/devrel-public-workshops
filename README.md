@@ -11,7 +11,7 @@ This is the repository for the Airflow and MLOps Workshop - 101.
 
 - Access to the [Astro IDE](https://www.astronomer.io/product/ide/).
 
-## Scenario: AstroTrips
+## Scenario: AstroTrips Catering Predictions
 
 AstroTrips is a fictional travel company specializing in interplanetary trips. Customers can book journeys to destinations like Mars, Venus, or Saturn, complete with launch windows, spacecraft assignments, and premium add-ons.
 

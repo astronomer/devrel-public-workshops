@@ -5,8 +5,8 @@ Provides an experiment tracker, model registry, and visualization gallery
 directly inside the Airflow UI — no MLflow server needed.
 
 Data sources:
-  - Production mode (default): reads from a SQL tracking database via
-    the Airflow connection configured in MLOPS_TRACKING_CONN_ID.
+  - Production mode (default): reads directly from the DuckDB file at
+    $AIRFLOW_HOME/include/astrotrips.duckdb (no Airflow connection needed).
   - Workshop mode (MLOPS_WORKSHOP_MODE=true): also reads live participant
     data from XCom entries pushed by the ML DAGs.
 """
@@ -20,6 +20,7 @@ import logging
 import os
 from pathlib import Path
 
+import duckdb
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +31,11 @@ log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 WORKSHOP_MODE = os.environ.get("MLOPS_WORKSHOP_MODE", "").lower() in ("true", "1", "yes")
-TRACKING_CONN_ID = os.environ.get("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
+DB_PATH = os.path.join(
+    os.environ.get("AIRFLOW_HOME", "/usr/local/airflow"),
+    "include",
+    "astrotrips.duckdb",
+)
 
 app = FastAPI(title="MLOps Plugin")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -60,59 +65,38 @@ def _ws():
 
 
 # ---------------------------------------------------------------------------
-# Database helpers
+# Database helpers — direct DuckDB access (bypasses Airflow connections so
+# the plugin works reliably from the webserver process in Astro cloud)
 # ---------------------------------------------------------------------------
 
-_param_marker: str | None = None
 
-
-def _sql(template: str) -> str:
-    """Convert qmark (?) SQL to the driver's native parameter style."""
-    global _param_marker
-    if _param_marker is None:
-        try:
-            hook = _get_hook()
-            conn = hook.get_conn()
-            import importlib as _il
-            mod = _il.import_module(type(conn).__module__.split(".")[0])
-            style = getattr(mod, "paramstyle", "qmark")
-            _param_marker = "%s" if style in ("format", "pyformat") else "?"
-            conn.close()
-        except Exception:
-            _param_marker = "?"
-    if _param_marker == "?":
-        return template
-    return template.replace("?", _param_marker)
-
-
-def _get_hook():
-    from airflow.sdk.bases.hook import BaseHook
-    conn = BaseHook.get_connection(TRACKING_CONN_ID)
-    return conn.get_hook()
-
-
-def _db_records(sql_template: str, params: tuple = ()) -> list[tuple]:
+def _db_records(sql: str, params: tuple = ()) -> list[tuple]:
     try:
-        hook = _get_hook()
-        return hook.get_records(_sql(sql_template), parameters=params) or []
+        conn = duckdb.connect(DB_PATH, read_only=True)
+        rows = conn.execute(sql, params).fetchall()
+        conn.close()
+        return rows
     except Exception as e:
         log.warning("DB query failed: %s", e)
         return []
 
 
-def _db_first(sql_template: str, params: tuple = ()) -> tuple | None:
+def _db_first(sql: str, params: tuple = ()) -> tuple | None:
     try:
-        hook = _get_hook()
-        return hook.get_first(_sql(sql_template), parameters=params)
+        conn = duckdb.connect(DB_PATH, read_only=True)
+        rows = conn.execute(sql, params).fetchall()
+        conn.close()
+        return rows[0] if rows else None
     except Exception as e:
         log.warning("DB query failed: %s", e)
         return None
 
 
-def _db_run(sql_template: str, params: tuple = ()) -> None:
+def _db_run(sql: str, params: tuple = ()) -> None:
     try:
-        hook = _get_hook()
-        hook.run(_sql(sql_template), parameters=params)
+        conn = duckdb.connect(DB_PATH)
+        conn.execute(sql, params)
+        conn.close()
     except Exception as e:
         log.warning("DB write failed: %s", e)
 
