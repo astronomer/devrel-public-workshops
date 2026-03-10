@@ -1,8 +1,14 @@
 ![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.1-blue?style=for-the-badge)
 
-# Airflow and MLOps Workshop - 101
+# Apache Airflow® and MLOps Workshop - 101
 
-This is the repository for the Airflow and MLOps Workshop - 101.
+Welcome to the Apache Airflow and MLOps Workshop (101)! You will build an example pipeline for all three fundamental ML paradigms: classification, regression, and clustering, all orchestrated by Airflow and track the experiments in the MLOps Airflow plugin.
+
+What you will learn:
+- Using Airflow to orchestrate feature engineering.
+- Asset-based scheduling to trigger Dag runs based on successful completion of previous tasks.
+- Dynamic task mapping to train multiple models with different sets of hyperparameters.
+- Using an Airflow plugin to track ML experiments.
 
 > [!NOTE]
 > tl;dr: jump directly to the [exercises](exercises.md).
@@ -21,7 +27,9 @@ The underlying database used for AstroTrips is DuckDB, and it comes with a set o
 
 ![AstroTrips](doc/astrotrips-base-tables.png)
 
-The MLOps workshop centers around predicting culinary customer behavior, particularly their choice of dessert and total spending during their trip.
+The MLOps workshop centers around predicting culinary customer behavior, particularly their choice of dessert and total spending during their trip. The [MLOps plugin](plugins/airflow-mlops-plugin) tracks all the ML experiments directly in the Airflow UI.
+
+![Plugin Dashboard](doc/plugin_readme.png)
 
 ## Using MotherDuck (optional)
 
@@ -56,3 +64,7 @@ AIRFLOW_CONN_DUCKDB_ASTROTRIPS='{
 > This optional step can be skipped for regular workshop participation. It is intended for advanced exploration after the workshop.
 
 This workshop can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env`, then adjust the configuration values if needed. You can start the project with `astro dev start`. However, the workshop is primarily designed for use with the Astro IDE.
+
+## Get started 
+
+Please proceed by following the exercises in [exercises.md](exercises.md).

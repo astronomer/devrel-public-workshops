@@ -42,7 +42,7 @@ def setup():
         task_id="food_data", conn_id=_DUCKDB_CONN_ID, sql="generate_food_data.sql"
     )
 
-    @task(outlets=[Asset("plugin_sync")])
+    @task(outlets=[Asset("plugin_sync"), Asset("db_reload")])
     def seed_ml_tracking():
         """Load pre-generated ML tracking data from CSV files into DuckDB."""
         from airflow.sdk.bases.hook import BaseHook

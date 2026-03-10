@@ -5,7 +5,7 @@ Dag to predict daily catering revenue.
 import logging
 import os
 
-from airflow.sdk import dag, task
+from airflow.sdk import Asset, dag, task
 
 log = logging.getLogger("airflow.task")
 
@@ -215,7 +215,7 @@ def astro_trip_catering_revenue_prediction():
 
         return plot_regression(results, MlopsTracker())
 
-    @task
+    @task(outlets=[Asset("plugin_sync")])
     def promote(results: list[dict]):
         from include.mlops_tracking import MlopsTracker
 
@@ -238,6 +238,7 @@ def astro_trip_catering_revenue_prediction():
     _train = train.partial(payload=_extract).expand(config=_MODEL_CONFIGS)
     _visualize = visualize.expand(results=_train)
     _promote = promote(_train)
+    _visualize >> _promote
 
 
 astro_trip_catering_revenue_prediction()

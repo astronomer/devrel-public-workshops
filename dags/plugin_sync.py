@@ -36,6 +36,7 @@ def _serialize(obj):
     schedule=[Asset("plugin_sync")],
     tags=["mlops", "plugin"],
     doc_md=__doc__,
+    is_paused_upon_creation=False
 )
 def plugin_sync():
 

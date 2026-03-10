@@ -5,7 +5,7 @@ Dag creating additional features from booking and customer signup data.
 import os
 from pathlib import Path
 from airflow.providers.standard.operators.empty import EmptyOperator
-from airflow.sdk import dag, task, chain
+from airflow.sdk import dag, task, chain, Asset
 
 _CONN_ID = os.getenv("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
 _PROJECT_ROOT = Path(
@@ -14,7 +14,7 @@ _PROJECT_ROOT = Path(
 _SQL_DIR = _PROJECT_ROOT / "include" / "sql"
 
 
-@dag(tags=["features"])
+@dag(tags=["features"], schedule=[Asset("db_reload")])
 def feature_engineering():
 
     _start = EmptyOperator(task_id="start")

@@ -1477,7 +1477,7 @@ function App() {
     <div className="min-h-screen">
       <header className="banner-header sticky top-0 z-50 border-b border-th-border/20 relative overflow-hidden">
         {theme === "dark" && (
-          <img src="/mlops/assets/banner2.png" alt="" className="absolute right-0 top-0 h-full w-auto object-contain object-right opacity-40 pointer-events-none select-none" />
+          <img src="assets/banner2.png" alt="" className="absolute right-0 top-0 h-full w-auto object-contain object-right opacity-40 pointer-events-none select-none" />
         )}
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between relative">
           <div className="flex items-center gap-3">

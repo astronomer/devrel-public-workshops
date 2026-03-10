@@ -12,7 +12,8 @@ Dessert classes:
 import logging
 import os
 
-from airflow.sdk import Asset, dag, task
+from airflow.sdk import Asset, dag, task, chain
+from include.mission_control import MissionControlOperator
 
 log = logging.getLogger("airflow.task")
 
@@ -68,7 +69,6 @@ def space_dessert_classification():
                 "passengers", "trip_length", "base_multiplier",
                 "has_children", "child_ratio", "has_promo",
                 "is_business", "is_gold", "is_silver",
-
                 "is_gemini", "is_claude", "is_chatgpt", "is_llama",
                 "is_high_orbit", "is_low_orbit",
                 "is_all_inclusive", "is_budget_plan",
@@ -163,11 +163,13 @@ def space_dessert_classification():
             results["metrics"]["accuracy"],
         )
 
+    _mission_control = MissionControlOperator(task_id="mission_control")
+
     _extract = extract()
     _train = train(_extract)
     _visualize = visualize(_train)
     _promote = promote(_train)
-    _visualize >> _promote
+    chain(_visualize, _promote, _mission_control)
 
 
 space_dessert_classification()

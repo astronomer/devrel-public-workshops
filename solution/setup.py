@@ -3,7 +3,7 @@ from pathlib import Path
 
 from airflow.configuration import AIRFLOW_HOME
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.sdk import dag, chain, task
+from airflow.sdk import Asset, dag, chain, task
 
 _DUCKDB_CONN_ID = os.getenv("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
 _SEED_DIR = Path(AIRFLOW_HOME) / "include" / "seed"
@@ -42,7 +42,7 @@ def setup():
         task_id="food_data", conn_id=_DUCKDB_CONN_ID, sql="generate_food_data.sql"
     )
 
-    @task
+    @task(outlets=[Asset("plugin_sync"), Asset("db_reload")])
     def seed_ml_tracking():
         """Load pre-generated ML tracking data from CSV files into DuckDB."""
         from airflow.sdk.bases.hook import BaseHook
