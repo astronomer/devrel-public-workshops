@@ -11,6 +11,7 @@ log = logging.getLogger("airflow.task")
 
 _DATA_CONN_ID = os.getenv("MLOPS_TRACKING_CONN_ID", "duckdb_astrotrips")
 _EXPERIMENT = "culinary_personas"
+_NUM_CLUSTERS = 2
 
 
 @dag(
@@ -65,7 +66,7 @@ def food_preference_clustering():
             ]
         else:
             feature_cols = ["total_orders", "avg_price", "total_spend"]
-        n_clusters = 3
+        n_clusters = _NUM_CLUSTERS
 
         X = df[feature_cols].values.astype(float)
         scaler = StandardScaler()
@@ -140,8 +141,8 @@ def food_preference_clustering():
             "n_clusters": n_clusters,
             "cluster_profiles": cluster_profiles,
             "df_for_plot": {
-                "avg_meal_spend": (df["total_spend"] / df["n_meals"].clip(lower=1)).tolist(),
-                "spend_per_passenger": (df["total_spend"] / df["passengers"].clip(lower=1)).tolist(),
+                "avg_price": df["avg_price"].tolist(),
+                "total_orders": df["total_orders"].tolist(),
             },
         }
 
@@ -153,7 +154,7 @@ def food_preference_clustering():
         return plot_clustering(results, MlopsTracker())
 
     @task(outlets=[Asset("plugin_sync")])
-    def promote(results: dict):
+    def promote(results: dict | list[dict]):
         from include.mlops_tracking import MlopsTracker
 
         tracker = MlopsTracker()

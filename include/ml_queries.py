@@ -170,22 +170,9 @@ CLUSTERING_BASE_QUERY = """
 """
 
 CLUSTERING_ENRICHED_QUERY = """
-    SELECT
-        base.customer_id,
-        base.total_orders,
-        base.avg_price,
-        base.total_spend,
-        base.passengers,
-        base.n_meals,
-        avg(bmf.child_ratio) AS avg_child_ratio,
-        avg(bmf.is_all_inclusive) AS avg_is_all_inclusive,
-        avg(bmf.is_budget_plan) AS avg_is_budget_plan,
-        avg(bmf.is_high_orbit) AS avg_is_high_orbit,
-        avg(bmf.is_low_orbit) AS avg_is_low_orbit
-    FROM (
+    WITH base AS (
         SELECT
             b.customer_id,
-            b.booking_id,
             count(*) AS total_orders,
             avg(mi.price_usd) AS avg_price,
             sum(mi.price_usd * mo.quantity) AS total_spend,
@@ -194,11 +181,23 @@ CLUSTERING_ENRICHED_QUERY = """
         FROM meal_orders mo
         JOIN menu_items mi ON mo.item_id = mi.item_id
         JOIN bookings b ON mo.booking_id = b.booking_id
-        GROUP BY b.customer_id, b.booking_id
+        GROUP BY b.customer_id
         HAVING count(*) >= 5
-    ) base
-    JOIN booking_meal_features bmf
-        ON base.booking_id = bmf.booking_id
-    GROUP BY base.customer_id, base.total_orders, base.avg_price, base.total_spend,
-             base.passengers, base.n_meals
+    ),
+    enriched AS (
+        SELECT
+            b.customer_id,
+            avg(bmf.child_ratio) AS avg_child_ratio,
+            avg(bmf.is_all_inclusive) AS avg_is_all_inclusive,
+            avg(bmf.is_budget_plan) AS avg_is_budget_plan,
+            avg(bmf.is_high_orbit) AS avg_is_high_orbit,
+            avg(bmf.is_low_orbit) AS avg_is_low_orbit
+        FROM bookings b
+        JOIN booking_meal_features bmf ON b.booking_id = bmf.booking_id
+        GROUP BY b.customer_id
+    )
+    SELECT base.*, e.avg_child_ratio, e.avg_is_all_inclusive,
+           e.avg_is_budget_plan, e.avg_is_high_orbit, e.avg_is_low_orbit
+    FROM base
+    JOIN enriched e ON base.customer_id = e.customer_id
 """

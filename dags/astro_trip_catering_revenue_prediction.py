@@ -212,9 +212,11 @@ def astro_trip_catering_revenue_prediction():
         return plot_regression(results, MlopsTracker())
 
     @task(outlets=[Asset("plugin_sync")])
-    def promote(results: list[dict]):
+    def promote(results: list[dict] | dict):
         from include.mlops_tracking import MlopsTracker
 
+        if isinstance(results, dict):
+            results = [results]
         best = max(results, key=lambda r: r["metrics"]["r2"])
         other_names = list(
             set(r["model_name"] for r in results) - {best["model_name"]}
@@ -233,7 +235,8 @@ def astro_trip_catering_revenue_prediction():
     _extract = extract()
     # Add dynamic task mapping here
     _train = train(payload=_extract, config=_MODEL_CONFIG_BASE)
-    _visualize = visualize.expand(results=_train)
+    # Add dynamic task mapping here
+    _visualize = visualize(results=_train)
     _promote = promote(_train)
     _visualize >> _promote
 

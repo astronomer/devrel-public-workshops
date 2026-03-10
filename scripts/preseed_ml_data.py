@@ -351,7 +351,7 @@ def _clust_base_query():
 
 CLUSTERING_ITERS = [
     {"features": ["total_orders", "avg_price", "total_spend"],
-     "enriched": False, "k": 3, "tag": "baseline – k=3", "day": 2},
+     "enriched": False, "k": 2, "tag": "baseline – k=2", "day": 2},
 ]
 
 
@@ -421,14 +421,14 @@ def seed_clustering(con):
             names = [f"Cluster {c}" for c in range(k)]
             fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-            scatter_x = df_base["total_spend"] / df_base["n_meals"].clip(lower=1)
-            scatter_y = df_base["total_spend"] / df_base["passengers"].clip(lower=1)
+            scatter_x = df_base["avg_price"]
+            scatter_y = df_base["total_orders"]
             for c in range(k):
                 mask = labels == c
                 axes[0].scatter(scatter_x[mask], scatter_y[mask],
                                 c=COLORS[c % len(COLORS)], label=names[c], alpha=0.6, s=30)
-            axes[0].set_xlabel("Avg Meal Spend")
-            axes[0].set_ylabel("Spend Per Passenger")
+            axes[0].set_xlabel("Avg Price")
+            axes[0].set_ylabel("Total Orders")
             axes[0].set_title("Customer Personas"); axes[0].legend(fontsize=8)
 
             pm = [f"avg_{c}" for c in feats]
