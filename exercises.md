@@ -62,6 +62,22 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 > [!TIP]
 > Learn more about [Airflow connections](https://www.astronomer.io/docs/learn/connections).
 
+## Set Up the Environment Variable
+
+The MLOps Dashboard needs to know it's running in workshop mode so it can display results from your Dag runs based on XCom values, instead of relying on an external database.
+
+1. In Astro, navigate to _Environment_ → _Environment Variables_ and click the _+ Environment Variable_ button.
+2. Enter the following details:
+
+ - **ENVIRONMENT VARIABLE KEY**: `MLOPS_WORKSHOP_MODE`
+ - **ENVIRONMENT VARIABLE VALUE**: `true`
+ - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
+
+3. Click _Create Environment Variable_.
+
+> [!TIP]
+> This is not necessary if you are using MotherDuck as your database.
+
 ## Start the test deployment and run the setup Dag
 
 1. Navigate to the _Astro IDE_ and click _Start Test Deployment_ in the top right corner. The deployment takes 3-5 minutes to spin up.

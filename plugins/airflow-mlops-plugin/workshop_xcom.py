@@ -1,9 +1,10 @@
 """
 Workshop-mode data source: reads ML run data from Airflow XCom.
 
-This module is ONLY used when MLOPS_WORKSHOP_MODE=true. It queries
-the Airflow metadata database for XCom entries pushed by the ML DAGs,
-and returns them in the same format as the tracking DB queries.
+This module is ONLY used when MLOPS_WORKSHOP_MODE=true. It uses the
+Airflow Internal API (DagRun.find / XCom.get_one) to fetch XCom entries
+pushed by the ML DAGs, and returns them in the same format as the
+tracking DB queries.
 """
 
 from __future__ import annotations
@@ -22,42 +23,61 @@ _VIZ_TASK = "visualize"
 def _query_xcom(dag_id: str, task_id: str) -> list[dict]:
     """Query XCom for the latest return values from a DAG task.
 
-    Returns a list of deserialized XCom values across all DAG runs,
-    ordered by execution_date descending.
+    Uses DagRun.find() + XCom.get_one() which go through the Airflow
+    Internal API and work correctly from the webserver process.
     """
-    from airflow.models.xcom import XCom
-    from airflow.utils.db import provide_session
+    try:
+        from airflow.models.dagrun import DagRun
+        from airflow.models.xcom import XCom
+    except ImportError as e:
+        log.error("Cannot import Airflow models: %s", e)
+        return []
 
-    @provide_session
-    def _fetch(session=None):
-        rows = (
-            session.query(XCom)
-            .filter(
-                XCom.dag_id == dag_id,
-                XCom.task_id == task_id,
-                XCom.key == "return_value",
+    try:
+        dag_runs = DagRun.find(dag_id=dag_id)
+        if hasattr(dag_runs, "all"):
+            dag_runs = dag_runs.all()
+        dag_runs = sorted(
+            dag_runs, key=lambda r: r.execution_date, reverse=True
+        )[:20]
+    except Exception as e:
+        log.warning("Failed to query DagRuns for %s: %s", dag_id, e)
+        return []
+
+    results = []
+    for dr in dag_runs:
+        try:
+            val = XCom.get_one(
+                dag_id=dag_id,
+                task_id=task_id,
+                run_id=dr.run_id,
+                map_index=-1,
             )
-            .order_by(XCom.timestamp.desc())
-            .limit(20)
-            .all()
-        )
-        results = []
-        for row in rows:
+            if isinstance(val, dict):
+                results.append(val)
+                continue
+            if isinstance(val, list):
+                results.extend(v for v in val if isinstance(v, dict))
+                continue
+        except Exception:
+            pass
+
+        for idx in range(20):
             try:
-                val = row.value
-                if isinstance(val, str):
-                    val = json.loads(val)
+                val = XCom.get_one(
+                    dag_id=dag_id,
+                    task_id=task_id,
+                    run_id=dr.run_id,
+                    map_index=idx,
+                )
+                if val is None:
+                    break
                 if isinstance(val, dict):
                     results.append(val)
             except Exception:
-                continue
-        return results
+                break
 
-    try:
-        return _fetch()
-    except Exception as e:
-        log.warning("Failed to query XCom for %s/%s: %s", dag_id, task_id, e)
-        return []
+    return results
 
 
 def get_xcom_experiments() -> list[dict]:

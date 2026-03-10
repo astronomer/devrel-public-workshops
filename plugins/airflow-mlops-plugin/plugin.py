@@ -64,11 +64,6 @@ def _ws():
     return mod
 
 
-# ---------------------------------------------------------------------------
-# Database helpers — direct DuckDB access (bypasses Airflow connections so
-# the plugin works reliably from the webserver process in Astro cloud)
-# ---------------------------------------------------------------------------
-
 
 def _db_records(sql: str, params: tuple = ()) -> list[tuple]:
     try:
@@ -380,11 +375,10 @@ class MlopsPlugin(AirflowPlugin):
 
     external_views = [
         {
-            "name": "MLOps",
+            "name": "MLOps Plugin",
             "href": "mlops/ui",
             "destination": "nav",
             "category": "browse",
             "url_route": "mlops",
-            "icon": "/mlops/assets/icon.svg",
         }
     ]
