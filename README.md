@@ -14,18 +14,16 @@ All workshops share the same scenario: **AstroTrips**, a fictional interplanetar
 
 Build and orchestrate data pipelines for AstroTrips reporting.
 
-| | |
-|---|---|
-| **Level** | Beginner to intermediate |
-| **Prerequisites** | Astro IDE access |
-| **API key** | Not required |
+- **Level**: Beginner to intermediate.
+- **Prerequisites**: Astro IDE access.
+- **API key(s)**: Not required.
 
 What you will learn:
-- Authoring parameterized SQL pipelines with the TaskFlow API and classic operators
-- Asset-aware scheduling for data-driven Dag dependencies
-- Dynamic task mapping for scalable data processing
-- Data quality checks as part of a pipeline
-- Human-in-the-loop patterns for manual intervention
+- Authoring parameterized SQL pipelines with the TaskFlow API and classic operators.
+- Asset-aware scheduling for data-driven Dag dependencies.
+- Dynamic task mapping for scalable data processing.
+- Data quality checks as part of a pipeline.
+- Human-in-the-loop patterns for manual intervention.
 
 ### AI workshop
 
@@ -33,19 +31,17 @@ What you will learn:
 
 Build an AI-powered customer review intelligence pipeline using Airflow's LLM task decorators.
 
-| | |
-|---|---|
-| **Level** | Intermediate |
-| **Prerequisites** | Astro IDE access |
-| **API key** | OpenAI API key (or compatible) |
+- **Level**: Intermediate.
+- **Prerequisites**: Astro IDE access.
+- **API key(s)**: OpenAI API key (or compatible).
 
 What you will learn:
-- Structured data extraction from text and images with `@task.llm`
-- LLM-powered branching with `@task.llm_branch` inside dynamic task groups
-- Generating text embeddings and computing similarity with `@task.embed`
-- Building multi-step AI agents with tools using `@task.agent`
-- Human-in-the-loop review and approval for AI-generated content
-- Asset-aware scheduling for chaining Dags together
+- Structured data extraction from text and images with `@task.llm`.
+- LLM-powered branching with `@task.llm_branch` inside dynamic task groups.
+- Generating text embeddings and computing similarity with `@task.embed`.
+- Building multi-step AI agents with tools using `@task.agent`.
+- Human-in-the-loop review and approval for AI-generated content.
+- Asset-aware scheduling for chaining Dags together.
 
 ### MLOps 101 workshop
 
@@ -53,17 +49,15 @@ What you will learn:
 
 Build ML pipelines for all three fundamental paradigms: classification, regression, and clustering, with experiment tracking in an Airflow plugin.
 
-| | |
-|---|---|
-| **Level** | Intermediate |
-| **Prerequisites** | Astro IDE access |
-| **API key** | Not required |
+- **Level**: Intermediate.
+- **Prerequisites**: Astro IDE access.
+- **API key(s)**: Not required.
 
 What you will learn:
-- Feature engineering orchestrated with Airflow
-- Asset-based scheduling to chain Dag runs on successful completion
-- Dynamic task mapping for hyperparameter tuning across multiple model configurations
-- Tracking ML experiments directly in the Airflow UI via a custom plugin
+- Feature engineering orchestrated with Airflow.
+- Asset-based scheduling to chain Dag runs on successful completion.
+- Dynamic task mapping for hyperparameter tuning across multiple model configurations.
+- Tracking ML experiments directly in the Airflow UI via a custom plugin.
 
 ## Running a workshop
 
