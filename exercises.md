@@ -35,7 +35,7 @@ While a deep understanding of the Astro platform is not required, here is a quic
     - **ACCOUNT**: `astronomer`
     - **REPOSITORY**: `devrel-public-workshops`
     - _Keep Astro Project Path empty_
-    - **BRANCH**: `workshops/astrotrips/<workshop>` (for example: `workshops/astrotrips/etl`)
+    - **BRANCH**: `workshops/astrotrips/etl`
     - **AUTHENTICATION TYPE**: `None (public repository)`
     - Click _Connect_. The IDE will import and open the project for you.
 
