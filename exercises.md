@@ -19,7 +19,7 @@ This workshop does not require any local Airflow installation. Instead, all deve
 
 While a deep understanding of the Astro platform is not required, here is a quick overview: Each customer has a dedicated Organization on Astro. An Organization can contain multiple Workspaces (for example, one per team). Each Workspace can have multiple Deployments, where a Deployment is a fully hosted Airflow environment.
 
-1. Create a [free trial of Astro](https://www.astronomer.io/lp/signup/?utm_source=conference&utm_medium=web&utm_campaign=devrel-workshop).
+1. Use the link provided by your workshop host to create a free trial of Astro, alternatively use [this link](https://www.astronomer.io/lp/signup/?utm_source=conference&utm_medium=web&utm_campaign=devrel-workshop).
 
     - After creating an account, verifying your email, and logging in, choose _Personal_ in the first step.
     - Next, choose an _Organization_ and _Workspace_ name. These can be fictional names and you can change them later.
@@ -337,7 +337,7 @@ The workshop provides a custom `MissionControlOperator`, which generates an inte
     ```
 
 4. Sync your changes, trigger your `daily_report` Dag, and check the task logs so see the clearance code.
-5. Post the code into the chat, so the workshop host can verify it.
+5. Share the code with the workshop host. In an online even, use the Zoom Q&A feature. In an in-person even, raise your hand so the host can verify your solution.
 
 > [!IMPORTANT]
 > The first 3 that finish this challenge successfully receive a gift from Astronomer!
