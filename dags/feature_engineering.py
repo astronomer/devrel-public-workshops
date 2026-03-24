@@ -14,7 +14,7 @@ _PROJECT_ROOT = Path(
 _SQL_DIR = _PROJECT_ROOT / "include" / "sql"
 
 
-@dag(tags=["features"], schedule=[Asset("db_reload")])
+@dag(tags=["features"], schedule=None)
 def feature_engineering():
 
     _start = EmptyOperator(task_id="start")

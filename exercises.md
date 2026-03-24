@@ -6,8 +6,8 @@
 - [Exercise 1: Add a feature engineering Dag](#exercise-1-add-a-feature-engineering-dag)
 - [Exercise 2: Classification: predict dessert choice based on enriched features](#exercise-2-classification-predict-dessert-choice-based-on-enriched-features)
 - [Challenge: Mission control](#challenge-mission-control)
-- [Extra 1: Regression: Hyperparameters and dynamic task mapping](#extra-1-regression-hyperparameters-and-dynamic-task-mapping)
-- [Extra 2: Clustering: Find spending groups of customers](#extra-2-clustering-find-spending-groups-of-customers)
+- [Exercise 3: Regression: Hyperparameters and dynamic task mapping](#exercise-3-regression-hyperparameters-and-dynamic-task-mapping)
+- [Exercise 4: Clustering: Find spending groups of customers](#exercise-4-clustering-find-spending-groups-of-customers)
 
 ---
 
@@ -104,6 +104,20 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 > [!IMPORTANT]
 > Running this Dag resets and re-creates the database. If you encounter any issues in the following exercises, simply run this Dag again.
 
+## The Airflow Dags 
+
+There are 4 main Dags in the project that you will modify to complete the exercises:
+
+- `feature_engineering`: Builds the `booking_meal_features` table from raw data. In exercise 1 you will complete this Dag, so the features are added to your database.
+- `space_dessert_classification`: Trains the dessert-choice classifier ([RandomForest](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html)). In exercise 2 you will run this Dag with the enriched features.
+- `astro_trip_catering_revenue_prediction`: Predicts the daily catering revenue per booking party using a [LinearRegression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html) model. In exercise 3 you will add dynamic task mapping to this Dag to train multiple models with different hyperparameters.
+- `food_preference_clustering`: Performs [KMeans](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html) clustering of customer food preferences. In exercise 4 you will modify the hyperparameters of this model.
+
+Additionally, two helper Dags make it easier to run the workshop:
+
+- `setup`: Creates the DuckDB schema, loads fixtures, seeds ML tracking data
+- `plugin_sync`: Automatically reads all ML tracking data from DuckDB, writes to Airflow Variable for display in the MLOps plugin. This is a workaround to not necessitate having access to a persistent external database for the workshop.
+
 ## The MLOps plugin 
 
 The [MLOps plugin](plugins/airflow-mlops-plugin) is a custom Airflow plugin that provides a dashboard that tracks ML experiments, runs, models, and visualizations. 
@@ -175,7 +189,7 @@ In this exercise you will complete the partial implementation of the feature eng
 
 ```python
     _compound_scores = compound_scores(_trip_context, _booking_demographics)
-    _save_features_ = save_features(
+    save_features(
         _trip_context,
         _booking_demographics,
         _compound_scores,
@@ -191,9 +205,21 @@ def feature_engineering():
 
 6. Sync your changes in the Astro IDE by clicking the **Sync to Test** button in the top right corner.
 
-![Sync changes](docs/sync-changes.png)
+![Sync changes](doc/sync-changes.png)
 
-7. Trigger the `feature_engineering` Dag by clicking the **Trigger Dag** button in the top right corner. If you get an error, rerun the `setup` Dag and try again.
+7. In the Airflow UI, click on the Dag name to open the Dag details page.
+
+![Dag details](doc/screenshot-dag-details.png)
+
+8. Use the toggle or the `g` shortcut to switch between the grid and graph view. In the graph you should see your new tasks and their dependencies.
+
+![Graph view](doc/screenshot-graph-view.png)
+
+9. Trigger the `feature_engineering` Dag by clicking the **Trigger** button in the top right corner. If you get an error, rerun the `setup` Dag and try again. 
+
+10. After triggering the Dag you'll see its Dag run in the grid view. Each green square represents a task instance that has completed successfully. You can access the logs of an individual task instance by clicking on the square.
+
+![Task logs](doc/screenshot-task-logs.png)
 
 ## Exercise 2: Run the classification Dag with enriched features
 
@@ -217,11 +243,11 @@ Within your `feature_engineering` Dag:
 5. Run the `setup` Dag to reset the duckdb , the `feature_engineering` Dag should run automatically afterwards based on the asset schedule.
 6. Check the `mission_control` task logs for your clearance code and share it!
 
-## Extra 1: Regression: Hyperparameters and dynamic task mapping
+## Exercise 3: Regression: Hyperparameters and dynamic task mapping
 
 Now that you know how many of each dessert to order (approximately), you also want to try to predict how much revenue you'll be making from the catering alone (food is expensive in space!).
 
-For this you create the `daily_catering_revenue` experiment based on a LinearRegression model to predict the daily revenue form catering per booking party. Looking at the pre-existing run you can see that the R2 score using only the `passengers` (more people eat more food) and `trip_length` (people on longer trips seem to eat a little more food per day) is not very good, it is only `0.43`. That means based on these two features you can predict about 43% of the variance in the daily revenue with a basic linear regression model. We can do better!
+For this you create the `daily_catering_revenue` experiment based on a LinearRegression model to predict the daily revenue from catering per booking party. Looking at the pre-existing run you can see that the R2 score using only the `passengers` (more people eat more food) and `trip_length` (people on longer trips seem to eat a little more food per day) is not very good, it is only `0.43`. That means based on these two features you can predict about 43% of the variance in the daily revenue with a basic linear regression model. We can do better!
 
 1. In the Astro IDE, open `dags/astro_trip_catering_revenue_prediction.py`.
 
@@ -269,7 +295,7 @@ Of course in production you want to always use the best model. This is the purpo
 
 ![Model stages](doc/screenshot-mlops-plugin-model-stages.png)
 
-## Extra 2: Clustering: Food preference segmentation
+## Exercise 4: Clustering: Food preference segmentation
 
 The third classic ML use case is clustering, finding groups of similar customers. Looking at the baseline run of the `culinary_personas` experiment, you can see that we tried to find 2 clusters, and got a silouette score of 0.51. 
 

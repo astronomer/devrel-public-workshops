@@ -16,6 +16,7 @@ What you will learn:
 ## Prerequisites
 
 - Access to the [Astro IDE](https://www.astronomer.io/product/ide/).
+- Basic knowledge about Machine Learning with [scikit-learn](https://scikit-learn.org/stable/user_guide.html).
 
 ## Scenario: AstroTrips Catering Predictions
 
