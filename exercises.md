@@ -297,7 +297,7 @@ Of course in production you want to always use the best model. This is the purpo
 
 ## Exercise 4: Clustering: Food preference segmentation
 
-The third classic ML use case is clustering, finding groups of similar customers. Looking at the baseline run of the `culinary_personas` experiment, you can see that we tried to find 2 clusters, and got a silouette score of 0.51. 
+The third classic ML use case is clustering, finding groups of similar customers. Looking at the baseline run of the `culinary_personas` experiment (Experiments -> culinary_personas -> Run #1), you can see that we tried to find 2 clusters, and got a silouette score of 0.51. 
 
 ![MLOps plugin culinary personas run](doc/screenshot-mlops-plugin-culinary-personas-run.png)
 
