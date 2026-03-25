@@ -283,9 +283,9 @@ Use `chain()` to define the execution order.
 > - 🤖 While waiting for a sync, you can ask the Astro IDE AI questions about your Dag or about Airflow in general.
 > - 💾 You don't need to commit your changes. If you want to keep your code after the workshop, fork the repository first.
 
-## See data validation in action
+## (Optional) See data validation in action
 
-To understand how data quality checks protect your pipeline, let's intentionally trigger a failure.
+To understand how data quality checks protect your pipeline, let's intentionally trigger a failure. This is optional, as it requires multiple Dag syncs and therefore takes more time.
 
 1. In your `_validate_report` task, change the `distinct_check` threshold from `3` to `42`:
 
