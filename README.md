@@ -6,7 +6,7 @@ This repo contains public Apache Airflow and Astro workshops maintained by Astro
 
 ## AstroTrips workshop series
 
-All workshops share the same scenario: **AstroTrips**, a fictional interplanetary travel company. You play the role of a data engineer working with real Airflow patterns, DuckDB, and the Astro IDEm  no local setup required.
+All workshops share the same scenario: **AstroTrips**, a fictional interplanetary travel company. You play the role of a data engineer working with real Airflow patterns, DuckDB, and the Astro IDE,  no local setup required.
 
 ### ELT/ETL workshop
 
@@ -45,7 +45,7 @@ What you will learn:
 
 ### MLOps 101 workshop
 
-**Branch:** [`workshops/astrotrips/mlops-101`](https://github.com/astronomer/devrel-public-workshops/tree/workshops/astrotrips/mlops-101)
+**Branch:** [`workshops/astrotrips/mlops`](https://github.com/astronomer/devrel-public-workshops/tree/workshops/astrotrips/mlops)
 
 Build ML pipelines for all three fundamental paradigms: classification, regression, and clustering, with experiment tracking in an Airflow plugin.
 
@@ -61,7 +61,7 @@ What you will learn:
 
 ## Running a workshop
 
-All workshops are designed for the **Astro IDE** (no local setup needed). Each workshop README contains full setup instructions, including how to connect the repository in the IDE.
+All workshops are designed for the [**Astro IDE**](https://www.astronomer.io/product/ide/) (no local setup needed). Each workshop README contains full setup instructions, including how to connect the repository in the IDE.
 
 ## Repository structure
 
