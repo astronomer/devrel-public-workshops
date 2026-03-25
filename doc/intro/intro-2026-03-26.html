@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstroTrips · Airflow ELT Workshop</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=League+Gothic&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:#FFB32D; --purple:#872DED; --teal:#13BDD7; --blue:#2676FF;
+  --green:#19BA5A; --red:#F03A47;
+  --ink:#12111c; --surface:rgba(22,20,34,.92); --surface2:rgba(34,32,50,.65);
+  --text:#E8E0D5; --dim:rgba(232,224,213,.55); --border:rgba(232,224,213,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--text)}
+body{font-family:'Roboto',sans-serif;-webkit-font-smoothing:antialiased}
+
+canvas#sky{position:fixed;inset:0;z-index:0}
+.scan{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(232,224,213,.015) 0 1px,transparent 1px 4px)}
+
+.deck{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:translateY(24px) scale(.985);
+  transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;padding:28px}
+.slide.active{opacity:1;transform:none;pointer-events:auto}
+
+h1,h2,h3{font-family:'League Gothic',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-weight:400;line-height:1.1}
+h1{font-size:60px;color:var(--gold)}
+h2{font-size:36px;color:var(--text)}
+h3{font-size:24px;color:var(--teal)}
+p{font-size:16px;line-height:1.6;color:var(--dim)}
+code{font-family:'Roboto Mono',monospace;font-size:.86em;color:var(--gold);
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,179,45,.12);padding:1px 6px;border-radius:3px}
+.eyebrow{font:500 10px/1 'Roboto Mono',monospace;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.gold{color:var(--gold)} .teal{color:var(--teal)}
+.divider{width:48px;height:2px;margin:12px 0;background:linear-gradient(90deg,var(--gold),transparent)}
+.divider-c{margin-left:auto;margin-right:auto;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+
+.fr{width:100%;max-width:1000px;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:32px 36px;backdrop-filter:blur(14px);
+  box-shadow:0 20px 60px rgba(0,0,0,.45);text-align:left;position:relative;overflow:hidden;
+  transform:scale(1.55);transform-origin:center center}
+.fr::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+.fr-c{text-align:center}
+.fr-gold{border-top:3px solid var(--gold)}
+
+.cols{display:grid;gap:16px}.cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:1fr 1fr 1fr}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.card-l{font:500 10px 'Roboto Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;display:block}
+
+.logo-w{position:fixed;bottom:14px;left:14px;z-index:100;opacity:.22}
+.logo-w img{width:160px}
+.prog{position:fixed;bottom:0;left:0;height:3px;z-index:100;background:var(--gold);transition:width .4s}
+.snum{position:fixed;bottom:14px;right:18px;z-index:100;font:500 11px 'Roboto Mono',monospace;color:var(--dim)}
+.hint{position:fixed;bottom:36px;right:18px;z-index:100;font:400 9px 'Roboto Mono',monospace;color:rgba(232,224,213,.2)}
+
+/* ── Desk scene ── */
+.desk-scene{position:relative;width:680px;height:320px;margin:14px auto 0}
+.desk-surface{position:absolute;bottom:0;left:0;right:0;height:50px;
+  background:linear-gradient(180deg,#1e1a2e 0%,#15132a 100%);
+  border-radius:6px 6px 0 0;border-top:1px solid rgba(255,255,255,.05)}
+.desk-surface::after{content:'';position:absolute;top:0;left:20px;right:20px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,179,45,.12),transparent)}
+.desk-edge{position:absolute;bottom:0;left:-10px;right:-10px;height:12px;
+  background:linear-gradient(180deg,#1a1730,#100e20);border-radius:0 0 4px 4px;
+  border-bottom:1px solid rgba(255,255,255,.03)}
+
+.desk-mon{position:absolute;bottom:50px}
+.desk-mon-l{left:30px}
+.desk-mon-r{right:30px}
+
+.mon-outer{width:290px;background:#0a0916;border-radius:8px;
+  overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,.6)}
+.mon-border-l{border:2px solid var(--purple);box-shadow:0 6px 28px rgba(0,0,0,.6),0 0 12px rgba(135,45,237,.15)}
+.mon-border-r{border:2px solid var(--blue);box-shadow:0 6px 28px rgba(0,0,0,.6),0 0 12px rgba(38,118,255,.15)}
+.mon-chin{height:8px;background:linear-gradient(180deg,#18172a,#0f0e1c);border-top:1px solid rgba(255,255,255,.03)}
+.mon-chin::after{content:'';display:block;width:20px;height:3px;margin:2px auto 0;
+  background:rgba(255,255,255,.06);border-radius:2px}
+.mon-stand{width:40px;height:26px;margin:0 auto;
+  background:linear-gradient(180deg,#18172a,#131225);clip-path:polygon(20% 0,80% 0,100% 100%,0 100%)}
+.mon-base{width:80px;height:6px;margin:0 auto;background:#16152a;border-radius:3px;
+  box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.mon-bar{height:22px;background:linear-gradient(180deg,#1e1d2e,#18172a);display:flex;
+  align-items:center;padding:0 10px;gap:5px;border-bottom:1px solid rgba(255,255,255,.04)}
+.mon-dot{width:7px;height:7px;border-radius:50%}
+.mon-bar span{flex:1;text-align:center;font:400 9px 'Roboto Mono',monospace;color:rgba(255,255,255,.22)}
+.mon-screen{height:164px;position:relative;overflow:hidden}
+
+.zoom-body{display:flex;align-items:center;justify-content:center;height:100%;background:#0a0914;gap:5px;flex-wrap:wrap;padding:8px}
+.zoom-tile{width:110px;height:60px;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.zoom-host{background:linear-gradient(135deg,#1a0e30,#120a22);border:1px solid var(--purple);box-shadow:0 0 10px rgba(135,45,237,.2)}
+.zoom-host img{width:100%;height:100%;object-fit:cover}
+.zoom-peer{background:#0e0d18;border:1px solid rgba(255,255,255,.06);font:400 8px 'Roboto Mono',monospace;color:rgba(255,255,255,.25)}
+.gh-body{background:#0d1117;padding:10px;height:100%;font:10px/1.5 'Roboto Mono',monospace;color:#8b949e;text-align:left}
+.gh-body .w{color:#c9d1d9} .gh-body .b{color:#58a6ff}
+
+.desk-kb{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  width:180px;height:22px;background:linear-gradient(180deg,#1a1930,#141328);
+  border-radius:4px;border:1px solid rgba(255,255,255,.04);
+  box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.desk-kb::before{content:'';position:absolute;top:4px;left:12px;right:12px;height:3px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 6px,transparent 6px 8px);border-radius:1px}
+.desk-kb::after{content:'';position:absolute;top:10px;left:12px;right:12px;height:3px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 6px,transparent 6px 8px);border-radius:1px}
+.desk-mouse{position:absolute;bottom:18px;right:180px;width:18px;height:28px;
+  background:#1a1930;border-radius:10px;border:1px solid rgba(255,255,255,.04)}
+.desk-mug{position:absolute;bottom:12px;left:48px;width:26px;height:28px;
+  border:2px solid rgba(255,179,45,.15);border-radius:4px;background:rgba(255,179,45,.04)}
+.desk-mug::after{content:'';position:absolute;top:5px;right:-10px;width:8px;height:14px;
+  border:2px solid rgba(255,179,45,.1);border-left:none;border-radius:0 6px 6px 0}
+
+/* ── Schema ── */
+.schema-wrap{position:relative;margin-top:12px}
+.schema-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;position:relative;z-index:1}
+.s-table{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;text-align:left}
+.s-table h4{font:500 11px 'Roboto Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;
+  padding-bottom:5px;border-bottom:1px solid var(--border)}
+.s-table ul{list-style:none;font:400 10px/1.6 'Roboto Mono',monospace;color:var(--dim)}
+.s-table .pk{color:var(--gold)} .s-table .fk{color:var(--teal)}
+.s-table.s-pipeline{border-color:rgba(255,179,45,.12);
+  background:var(--surface2);animation:pipelinePulse 3s ease-in-out infinite;
+  box-shadow:0 0 0 0 rgba(255,179,45,0)}
+@keyframes pipelinePulse{0%,100%{border-color:rgba(255,179,45,.08);box-shadow:0 0 0 0 rgba(255,179,45,0)}
+  50%{border-color:rgba(255,179,45,.25);box-shadow:0 0 12px rgba(255,179,45,.06)}}
+.s-legend{display:flex;gap:14px;justify-content:center;margin-top:10px;font:400 11px 'Roboto Mono',monospace;color:var(--dim)}
+.s-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:4px}
+
+.schema-lines{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible}
+.schema-lines path{fill:none;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:6 4;
+  animation:lineFlow 2.5s linear infinite}
+@keyframes lineFlow{to{stroke-dashoffset:-20}}
+
+/* ── Rocket mascot ── */
+.rocket-float{position:absolute;top:-70px;left:-60px;z-index:2;width:180px;height:auto;
+  animation:rocketBob 4s ease-in-out infinite;filter:drop-shadow(0 10px 24px rgba(0,0,0,.5));
+  transform-origin:center center;pointer-events:none}
+@keyframes rocketBob{
+  0%,100%{transform:translateY(0) rotate(-2deg)}
+  50%{transform:translateY(-12px) rotate(1deg)}}
+
+.road{margin-top:12px}
+.ri{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:8px;
+  border:1px solid var(--border);background:rgba(18,17,28,.4);margin-bottom:7px}
+.ri:last-child{margin-bottom:0}
+.rb{font:500 12px 'Roboto Mono',monospace;min-width:40px;text-align:center}
+.rt{font-size:15px;color:var(--text)} .rs{font-size:11px;color:var(--dim);margin-top:1px}
+.ri-ch{border-color:rgba(255,179,45,.25);background:rgba(255,179,45,.05)}
+
+.road-grid{display:grid;grid-template-columns:1fr auto;gap:0 14px;margin-top:12px}
+.road-grid .ri{margin-bottom:7px}
+.road-grid .ri:last-of-type{margin-bottom:0}
+
+/* ── Roadmap cascade animation ── */
+.road-grid>*{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
+.slide.active .road-grid>:nth-child(1),.slide.active .road-grid>:nth-child(2){opacity:1;transform:none;transition-delay:.3s}
+.slide.active .road-grid>:nth-child(3),.slide.active .road-grid>:nth-child(4){opacity:1;transform:none;transition-delay:.85s}
+.slide.active .road-grid>:nth-child(5),.slide.active .road-grid>:nth-child(6){opacity:1;transform:none;transition-delay:1.4s}
+.slide.active .road-grid>:nth-child(7),.slide.active .road-grid>:nth-child(8){opacity:1;transform:none;transition-delay:1.95s}
+.slide.active .road-grid>:nth-child(9),.slide.active .road-grid>:nth-child(10){opacity:1;transform:none;transition-delay:2.5s}
+.road-note{opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease}
+.slide.active .road-note{opacity:1;transform:none;transition-delay:3s}
+.tl-cell{display:flex;align-items:center;gap:4px;margin-bottom:7px;position:relative}
+.tl-cell:last-child{margin-bottom:0}
+.tl-cell::before{content:'';position:absolute;top:0;bottom:0;left:3px;width:2px;
+  background:linear-gradient(180deg,rgba(19,189,215,.15),rgba(255,179,45,.15),rgba(25,186,90,.15))}
+.tl-cell:nth-child(2)::before{top:50%}
+.tl-cell:last-child::before{bottom:50%}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.08);flex-shrink:0;position:relative;z-index:1}
+.tl-dot-on{background:var(--teal);box-shadow:0 0 6px rgba(19,189,215,.3)}
+.tl-dot-gold{background:var(--gold);box-shadow:0 0 6px rgba(255,179,45,.3)}
+.tl-dot-green{background:var(--green);box-shadow:0 0 6px rgba(25,186,90,.3)}
+.tl-pill{font:500 9px 'Roboto Mono',monospace;white-space:nowrap;padding:2px 7px;border-radius:6px}
+.tl-pill-teal{color:var(--teal);background:rgba(19,189,215,.08);border:1px solid rgba(19,189,215,.15)}
+.tl-pill-gold{color:var(--gold);background:rgba(255,179,45,.08);border:1px solid rgba(255,179,45,.15)}
+.tl-pill-green{color:var(--green);background:rgba(25,186,90,.08);border:1px solid rgba(25,186,90,.15)}
+.tl-clock{width:28px;height:28px;position:relative;margin:0 auto 4px}
+.tl-clock-face{width:100%;height:100%;border:1.5px solid rgba(255,179,45,.3);border-radius:50%;
+  position:relative;background:rgba(255,179,45,.04)}
+.tl-clock-face::before{content:'';position:absolute;top:50%;left:50%;width:1.5px;height:8px;
+  background:var(--gold);transform-origin:bottom center;transform:translate(-50%,-100%) rotate(0deg);
+  border-radius:1px;animation:clockMin 8s linear infinite}
+.tl-clock-face::after{content:'';position:absolute;top:50%;left:50%;width:1.5px;height:5px;
+  background:var(--dim);transform-origin:bottom center;transform:translate(-50%,-100%) rotate(90deg);
+  border-radius:1px;animation:clockHr 60s linear infinite}
+.tl-clock-dot{position:absolute;top:50%;left:50%;width:3px;height:3px;border-radius:50%;
+  background:var(--gold);transform:translate(-50%,-50%)}
+.tl-clock svg{position:absolute;top:-3px;left:-3px;width:34px;height:34px}
+@keyframes clockMin{to{transform:translate(-50%,-100%) rotate(360deg)}}
+@keyframes clockHr{to{transform:translate(-50%,-100%) rotate(450deg)}}
+
+.stat-n{font:400 42px 'League Gothic',sans-serif;color:var(--gold);line-height:1}
+.stat-l{font-size:11px;color:var(--dim);margin-top:3px}
+
+/* ── Feature badges ── */
+.feat-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
+.feat-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;
+  font:500 9px 'Roboto Mono',monospace;color:var(--text);letter-spacing:.3px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  transition:background .5s ease,border-color .5s ease,color .5s ease,box-shadow .5s ease}
+.feat-pill:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06)}
+.feat-pill.fp-active{color:#fff}
+.feat-pill.fp-active .feat-dot{background:#fff !important}
+.feat-pill.fp-green{background:rgba(25,186,90,.18);border-color:var(--green);box-shadow:0 0 10px rgba(25,186,90,.2)}
+.feat-pill.fp-blue{background:rgba(38,118,255,.18);border-color:var(--blue);box-shadow:0 0 10px rgba(38,118,255,.2)}
+.feat-pill.fp-purple{background:rgba(135,45,237,.18);border-color:var(--purple);box-shadow:0 0 10px rgba(135,45,237,.2)}
+.feat-pill.fp-teal{background:rgba(19,189,215,.18);border-color:var(--teal);box-shadow:0 0 10px rgba(19,189,215,.2)}
+.feat-pill.fp-gold{background:rgba(255,179,45,.18);border-color:var(--gold);box-shadow:0 0 10px rgba(255,179,45,.2)}
+.feat-pill.fp-red{background:rgba(240,58,71,.18);border-color:var(--red);box-shadow:0 0 10px rgba(240,58,71,.2)}
+.feat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;transition:background .5s ease}
+
+/* ── Reveal system ── */
+.reveal-group{max-height:0;overflow:hidden;transition:max-height .6s cubic-bezier(.4,0,.2,1)}
+.reveal-group.rg-growing{overflow:hidden}
+.reveal-group.revealed{overflow:visible}
+.reveal-group .rg-inner{opacity:0;transform:translateY(10px);transition:opacity .4s ease,transform .4s ease}
+.reveal-group.rg-show-children .rg-inner{opacity:1;transform:translateY(0)}
+.reveal-group .rg-inner .card,.reveal-group .rg-inner .feat-pill{opacity:0;transform:translateY(8px);
+  transition:opacity .35s ease,transform .35s ease}
+.reveal-group.rg-show-children .rg-inner .card,
+.reveal-group.rg-show-children .rg-inner .feat-pill{opacity:1;transform:translateY(0)}
+.reveal-group.rg-show-children .rg-inner .card:nth-child(1){transition-delay:.04s}
+.reveal-group.rg-show-children .rg-inner .card:nth-child(2){transition-delay:.08s}
+.reveal-group.rg-show-children .rg-inner .card:nth-child(3){transition-delay:.12s}
+.reveal-group.rg-show-children .rg-inner .card:nth-child(4){transition-delay:.16s}
+.reveal-group.rg-show-children .rg-inner .card:nth-child(5){transition-delay:.2s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(1){transition-delay:.04s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(2){transition-delay:.08s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(3){transition-delay:.12s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(4){transition-delay:.16s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(5){transition-delay:.2s}
+.reveal-group.rg-show-children .rg-inner .feat-pill:nth-child(6){transition-delay:.24s}
+
+/* ── Moon meme ── */
+.moon-banner{margin-top:12px;text-align:center;position:relative;overflow:visible}
+.moon-txt{font:400 22px 'League Gothic',sans-serif;letter-spacing:2px;color:var(--gold);
+  text-transform:uppercase;display:inline-block;position:relative}
+.moon-txt .moon-sub{display:block;font:400 10px 'Roboto',sans-serif;letter-spacing:1px;
+  color:var(--dim);margin-top:2px;text-transform:none}
+.moon-rocket{display:inline-block;position:relative;width:28px;height:28px;vertical-align:middle;
+  margin-left:6px;animation:moonLaunch 3s ease-in-out infinite}
+.moon-rocket img{width:100%;height:100%;transform:rotate(-45deg)}
+@keyframes moonLaunch{0%,100%{transform:translateY(0)}30%{transform:translateY(-10px)}60%{transform:translateY(-6px)}}
+.moon-sparks{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);display:flex;gap:2px}
+.moon-spark{width:3px;height:3px;border-radius:50%;background:var(--gold);opacity:0;
+  animation:sparkBlink .8s ease-in-out infinite alternate}
+.moon-spark:nth-child(2){animation-delay:.15s;background:var(--red)}
+.moon-spark:nth-child(3){animation-delay:.3s}
+@keyframes sparkBlink{0%{opacity:0;transform:translateY(0) scale(.5)}100%{opacity:.8;transform:translateY(4px) scale(1)}}
+
+/* ── Crew photo ── */
+.vf-frame{position:relative;width:280px;height:180px;margin:16px auto;border:2px solid rgba(255,255,255,.12);
+  border-radius:10px;background:rgba(0,0,0,.3);overflow:hidden}
+.vf-corners span{position:absolute;width:20px;height:20px;border-color:var(--teal);border-style:solid}
+.vf-corners span:nth-child(1){top:8px;left:8px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+.vf-corners span:nth-child(2){top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+.vf-corners span:nth-child(3){bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+.vf-corners span:nth-child(4){bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+.vf-rec{position:absolute;top:12px;right:14px;display:flex;align-items:center;gap:4px;
+  font:500 8px 'Roboto Mono',monospace;color:var(--red);letter-spacing:.5px}
+.vf-rec-dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:recBlink 1.2s ease-in-out infinite}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:.2}}
+.vf-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font:400 36px/1 'League Gothic',sans-serif;color:var(--text);letter-spacing:2px;text-transform:uppercase;opacity:.12}
+.vf-emoji-rain{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.vf-emoji{position:absolute;bottom:-20px;font-size:18px;opacity:0;animation:emojiRise 3s ease-out infinite}
+.vf-emoji:nth-child(1){left:12%;animation-delay:0s;font-size:20px}
+.vf-emoji:nth-child(2){left:28%;animation-delay:.6s;font-size:16px}
+.vf-emoji:nth-child(3){left:44%;animation-delay:1.2s;font-size:22px}
+.vf-emoji:nth-child(4){left:60%;animation-delay:.3s;font-size:15px}
+.vf-emoji:nth-child(5){left:76%;animation-delay:1.8s;font-size:19px}
+.vf-emoji:nth-child(6){left:88%;animation-delay:.9s;font-size:17px}
+@keyframes emojiRise{0%{opacity:0;transform:translateY(0) scale(.6)}
+  15%{opacity:.9;transform:translateY(-30px) scale(1)}
+  70%{opacity:.6;transform:translateY(-120px) scale(.9) rotate(10deg)}
+  100%{opacity:0;transform:translateY(-180px) scale(.7) rotate(-5deg)}}
+.crew-instruction{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  padding:8px 18px;border-radius:10px;background:rgba(255,179,45,.06);
+  border:1px solid rgba(255,179,45,.2);font:500 13px 'Roboto Mono',monospace;color:var(--gold)}
+.crew-emoji-hint{font-size:20px;animation:crewBounce 1.5s ease-in-out infinite}
+@keyframes crewBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* ── Floating hearts ── */
+.hearts-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.float-heart{position:absolute;bottom:-20px;font-size:18px;opacity:0;animation:heartFloat linear infinite}
+.float-heart:nth-child(1){left:8%;font-size:16px;animation-duration:4.5s;animation-delay:0s}
+.float-heart:nth-child(2){left:22%;font-size:22px;animation-duration:5.2s;animation-delay:.8s}
+.float-heart:nth-child(3){left:38%;font-size:14px;animation-duration:4s;animation-delay:1.6s}
+.float-heart:nth-child(4){left:52%;font-size:20px;animation-duration:5.8s;animation-delay:.3s}
+.float-heart:nth-child(5){left:65%;font-size:15px;animation-duration:4.3s;animation-delay:2.1s}
+.float-heart:nth-child(6){left:78%;font-size:24px;animation-duration:5.5s;animation-delay:1.2s}
+.float-heart:nth-child(7){left:90%;font-size:13px;animation-duration:4.8s;animation-delay:2.8s}
+.float-heart:nth-child(8){left:45%;font-size:17px;animation-duration:5s;animation-delay:3.4s}
+@keyframes heartFloat{0%{opacity:0;transform:translateY(0) scale(.5) rotate(0deg)}
+  10%{opacity:.7;transform:translateY(-40px) scale(1) rotate(-8deg)}
+  50%{opacity:.5;transform:translateY(-200px) scale(.9) rotate(10deg)}
+  90%{opacity:.2;transform:translateY(-380px) scale(.7) rotate(-5deg)}
+  100%{opacity:0;transform:translateY(-420px) scale(.5) rotate(12deg)}}
+
+.codeblock{background:#0d1117;border:1px solid #21262d;border-radius:8px;
+  padding:14px 16px;font:12px/1.5 'Roboto Mono',monospace;color:#c9d1d9;white-space:pre;overflow-x:auto}
+.codeblock .kw{color:#ff7b72} .codeblock .fn{color:#d2a8ff}
+.codeblock .dc{color:#79c0ff} .codeblock .st{color:#a5d6ff}
+
+.cc-term{margin-bottom:10px}
+.cc-term strong{font-family:'League Gothic',sans-serif;font-size:20px;text-transform:uppercase;letter-spacing:.04em;display:block}
+.cc-term p{margin:0;font-size:13px}
+
+/* ── Dag graph visualization ── */
+.dag-viz{display:flex;align-items:center;gap:0;margin-top:14px;padding:12px;
+  background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;
+  background-image:radial-gradient(circle,rgba(255,255,255,.03) 1px,transparent 1px);background-size:12px 12px}
+.dag-node{padding:6px 10px;border-radius:6px;border:2px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.02);min-width:80px;transition:border-color .4s,background .4s}
+.dag-node.dn-running{border-color:var(--blue);background:rgba(38,118,255,.06)}
+.dag-node.dn-success{border-color:var(--green);background:rgba(25,186,90,.05)}
+.dag-name{font:500 10px 'Roboto Mono',monospace;color:var(--text);white-space:nowrap}
+.dag-type{font:400 8px 'Roboto Mono',monospace;color:var(--dim);margin-top:1px}
+.dag-badge{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:4px;
+  font:500 8px 'Roboto Mono',monospace;transition:background .4s,color .4s}
+.dag-badge.db-queued{background:rgba(255,255,255,.08);color:var(--dim)}
+.dag-badge.db-running{background:var(--blue);color:#fff}
+.dag-badge.db-success{background:var(--green);color:#fff}
+.dag-edge{width:32px;height:12px;flex-shrink:0}
+
+/* ── Lightsaber ── */
+.lightsaber{display:inline-flex;align-items:center;height:14px;gap:0}
+.ls-hilt{width:28px;height:8px;position:relative;display:flex;align-items:center}
+.ls-hilt::before{content:'';position:absolute;left:0;width:22px;height:8px;
+  background:linear-gradient(180deg,#a0a0a0 0%,#6a6a6a 30%,#888 50%,#5a5a5a 80%,#777 100%);
+  border-radius:1.5px;border:1px solid rgba(255,255,255,.08)}
+.ls-hilt::after{content:'';position:absolute;left:20px;width:8px;height:10px;
+  background:linear-gradient(180deg,#c0c0c0,#888,#aaa);border-radius:1px;top:-1px;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:inset 0 0 2px rgba(0,0,0,.3)}
+.ls-blade{width:0;height:3px;border-radius:0 1.5px 1.5px 0;
+  background:linear-gradient(90deg,rgba(255,255,255,.95),rgba(100,180,255,.9));
+  box-shadow:0 0 4px rgba(100,180,255,.8),0 0 10px rgba(100,180,255,.5),0 0 20px rgba(100,180,255,.25);
+  animation:lsIgnite 1s cubic-bezier(.2,.8,.3,1) forwards 1s}
+@keyframes lsIgnite{0%{width:0;opacity:0}40%{opacity:1}60%{width:90px}75%{width:82px}100%{width:86px}}
+@keyframes subtlePulse{0%,100%{opacity:.4}50%{opacity:.8}}
+
+/* ── Terminal block ── */
+.termblock{margin-top:6px;padding:8px 12px;background:#0c0c14;border:1px solid rgba(255,255,255,.06);
+  border-radius:6px;font:400 9px/1.6 'Roboto Mono',monospace;color:var(--dim)}
+.term-ps{color:var(--green);font-weight:500}
+.term-dim{opacity:.45;font-size:8.5px}
+.term-out{color:var(--gold);font-size:11px;font-weight:500;display:block;margin-top:2px;
+  animation:termType 1.5s steps(15) forwards 2s;overflow:hidden;white-space:nowrap;width:0;
+  border-right:2px solid var(--gold)}
+@keyframes termType{0%{width:0}90%{width:9.5em;border-right-color:var(--gold)}100%{width:9.5em;border-right-color:transparent}}
+
+/* ── Mission Control slide ── */
+.mc-wrap{position:relative;width:100%;max-width:500px;margin:0 auto}
+.mc-radar{position:absolute;top:50%;left:50%;width:320px;height:320px;
+  transform:translate(-50%,-50%);pointer-events:none;z-index:0}
+.mc-ring{position:absolute;inset:0;border:1px solid rgba(255,179,45,.08);border-radius:50%}
+.mc-ring:nth-child(2){inset:40px;border-color:rgba(255,179,45,.10)}
+.mc-ring:nth-child(3){inset:80px;border-color:rgba(255,179,45,.12)}
+.mc-ring:nth-child(4){inset:110px;border-color:rgba(255,179,45,.15)}
+.mc-cross-h,.mc-cross-v{position:absolute;background:rgba(255,179,45,.06)}
+.mc-cross-h{width:100%;height:1px;top:50%;left:0}
+.mc-cross-v{height:100%;width:1px;left:50%;top:0}
+.mc-sweep{position:absolute;inset:0;border-radius:50%;overflow:hidden;
+  animation:radarSweep 4s linear infinite}
+.mc-sweep::before{content:'';position:absolute;top:0;left:50%;width:50%;height:50%;
+  transform-origin:bottom left;
+  background:conic-gradient(from 0deg at 0% 100%,rgba(255,179,45,.22),transparent 60deg)}
+@keyframes radarSweep{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+.mc-content{position:relative;z-index:1;text-align:center;padding:40px 0}
+.mc-badge{display:inline-block;font:500 10px 'Roboto Mono',monospace;letter-spacing:3px;
+  text-transform:uppercase;color:var(--gold);border:1px solid rgba(255,179,45,.3);
+  padding:4px 14px;border-radius:20px;margin-bottom:14px;
+  animation:mcPulse 2s ease-in-out infinite}
+@keyframes mcPulse{0%,100%{border-color:rgba(255,179,45,.3);color:var(--gold)}
+  50%{border-color:rgba(255,179,45,.6);color:#ffe08a;text-shadow:0 0 8px rgba(255,179,45,.3)}}
+@keyframes mcPulse2{0%,100%{border-color:rgba(38,118,255,.4);box-shadow:0 0 0 rgba(38,118,255,0)}
+  50%{border-color:rgba(38,118,255,.7);box-shadow:0 0 14px rgba(38,118,255,.15)}}
+
+.mc-blips{position:absolute;inset:0;pointer-events:none}
+.mc-blip{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--gold);
+  opacity:0;animation:blipFade 4s ease-in-out infinite}
+.mc-blip:nth-child(1){top:22%;left:35%;animation-delay:0s}
+.mc-blip:nth-child(2){top:60%;left:72%;animation-delay:1.3s}
+.mc-blip:nth-child(3){top:40%;left:20%;animation-delay:2.6s}
+@keyframes blipFade{0%,80%,100%{opacity:0;transform:scale(0)}
+  20%{opacity:.7;transform:scale(1)}40%{opacity:.3;transform:scale(1.8)}}
+
+/* ── LinkedIn slide ── */
+.li-wrap{position:relative;display:flex;align-items:center;gap:36px;margin-top:14px}
+.li-beacon{position:relative;width:160px;height:160px;flex-shrink:0}
+.li-beacon-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(38,118,255,.15);
+  animation:liRing 3s ease-out infinite}
+.li-beacon-ring:nth-child(1){inset:0;animation-delay:0s}
+.li-beacon-ring:nth-child(2){inset:-20px;animation-delay:1s}
+.li-beacon-ring:nth-child(3){inset:-40px;animation-delay:2s}
+@keyframes liRing{0%{opacity:.6;transform:scale(.85)}100%{opacity:0;transform:scale(1.15)}}
+
+.li-avatar{position:absolute;top:50%;left:50%;width:100px;height:100px;
+  transform:translate(-50%,-50%);border-radius:50%;overflow:hidden;
+  border:3px solid var(--blue);box-shadow:0 0 20px rgba(38,118,255,.25)}
+.li-avatar img{width:100%;height:100%;object-fit:cover}
+
+.li-logo-badge{position:absolute;bottom:22px;right:18px;width:36px;height:36px;
+  background:#0A66C2;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(10,102,194,.4);animation:liBadgePop 2.5s ease-in-out infinite}
+@keyframes liBadgePop{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.li-logo-badge svg{width:22px;height:22px;fill:#fff}
+
+.li-info{text-align:left;flex:1}
+.li-name{font:400 28px 'League Gothic',sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--text)}
+.li-handle{font:500 13px 'Roboto Mono',monospace;color:var(--blue);margin-top:2px}
+
+.li-btn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;
+  padding:10px 22px;border-radius:24px;background:linear-gradient(135deg,#0A66C2,#004182);
+  color:#fff;font:500 14px 'Roboto',sans-serif;text-decoration:none;
+  border:none;cursor:pointer;transition:transform .2s,box-shadow .2s;
+  box-shadow:0 4px 16px rgba(10,102,194,.35)}
+.li-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(10,102,194,.5)}
+.li-btn svg{width:18px;height:18px;fill:#fff}
+
+.li-notifs{display:flex;gap:10px;justify-content:center;margin-top:28px;margin-bottom:8px;flex-wrap:wrap}
+.li-notif{background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:6px 14px;font:400 11px 'Roboto Mono',monospace;color:var(--dim);
+  white-space:nowrap;opacity:0;animation:liNotifPop 6s ease-in-out infinite}
+.li-notif:nth-child(1){animation-delay:0s}
+.li-notif:nth-child(2){animation-delay:2s}
+.li-notif:nth-child(3){animation-delay:4s}
+.li-notif .notif-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--blue);margin-right:6px;vertical-align:middle}
+@keyframes liNotifPop{
+  0%{opacity:0;transform:translateY(6px) scale(.95)}
+  12%{opacity:.85;transform:translateY(0) scale(1)}
+  65%{opacity:.85;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-4px) scale(.97)}}
+
+/* ── Coffee character ── */
+.coffee-char{width:120px;height:140px;margin:6px auto;position:relative}
+.coffee-char svg{width:100%;height:100%}
+.cc-body{animation:ccWobble 3s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes ccWobble{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.cc-steam{opacity:0;animation:ccSteam 2.8s ease-in-out infinite}
+.cc-steam:nth-child(2){animation-delay:.5s;animation-duration:3.2s}
+.cc-steam:nth-child(3){animation-delay:1s;animation-duration:2.6s}
+@keyframes ccSteam{
+  0%{opacity:0;transform:translateY(0) scaleX(1)}
+  15%{opacity:.45}
+  60%{opacity:.2;transform:translateY(-18px) scaleX(1.4)}
+  100%{opacity:0;transform:translateY(-30px) scaleX(.6)}}
+.cc-blink{animation:ccBlink 4s ease-in-out infinite}
+@keyframes ccBlink{0%,42%,48%,100%{transform:scaleY(1)}45%{transform:scaleY(.1)}}
+.cc-shadow{animation:ccShadow 3s ease-in-out infinite;transform-origin:center}
+@keyframes ccShadow{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.85)}}
+.cc-sweat{opacity:0;animation:ccSweat 3s ease-in-out infinite 1.5s}
+@keyframes ccSweat{0%{opacity:0;transform:translateY(0)}15%{opacity:.7}50%{opacity:.3;transform:translateY(6px)}60%{opacity:0;transform:translateY(8px)}100%{opacity:0}}
+
+/* ── Fake Zoom chat ── */
+.zchat{background:#1a1930;border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;width:210px;flex-shrink:0;display:flex;flex-direction:column}
+.zchat-bar{height:26px;background:linear-gradient(180deg,#1e1d2e,#18172a);
+  display:flex;align-items:center;padding:0 10px;gap:6px;
+  font:500 9px 'Roboto Mono',monospace;color:rgba(255,255,255,.35);
+  border-bottom:1px solid rgba(255,255,255,.04)}
+.zchat-bar::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);opacity:.7}
+.zchat-body{padding:8px;flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px}
+.zchat-input{height:24px;border-top:1px solid rgba(255,255,255,.04);padding:5px 10px;
+  font:400 9px 'Roboto Mono',monospace;color:rgba(255,255,255,.15);display:flex;align-items:center;gap:4px}
+.zchat-dots{display:flex;gap:2px}
+.zchat-dots span{width:3px;height:3px;border-radius:50%;background:var(--dim);opacity:.3;animation:dotBounce .9s ease-in-out infinite}
+.zchat-dots span:nth-child(2){animation-delay:.15s}
+.zchat-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:.6;transform:translateY(-2px)}}
+.cn{font-weight:500;margin-right:4px}
+.cn-gold{color:var(--gold)} .cn-teal{color:var(--teal)} .cn-blue{color:var(--blue)}
+.cn-green{color:var(--green)} .cn-purple{color:var(--purple)} .cn-red{color:var(--red)}
+
+/* ── Mini Spotify player ── */
+.sp-player{position:absolute;bottom:6px;right:6px;display:flex;align-items:center;gap:6px;
+  background:rgba(18,18,18,.92);border-radius:6px;padding:4px 8px 4px 5px;z-index:3;
+  border:1px solid rgba(30,215,96,.15);backdrop-filter:blur(6px)}
+.sp-cover{width:28px;height:28px;border-radius:3px;overflow:hidden;flex-shrink:0;position:relative;
+  background:linear-gradient(135deg,#1a0a2e,#0d2818,#1a2a0a)}
+.sp-cover-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#2d1b4e 0%,#1a3a2a 50%,#3a2a0a 100%)}
+.sp-cover-art svg{width:14px;height:14px;fill:rgba(255,255,255,.5)}
+.sp-eq{position:absolute;bottom:2px;right:2px;display:flex;gap:1px;align-items:flex-end;height:8px}
+.sp-eq-bar{width:2px;background:var(--green);border-radius:1px;animation:spEq .8s ease-in-out infinite alternate}
+.sp-eq-bar:nth-child(1){height:3px;animation-delay:0s}
+.sp-eq-bar:nth-child(2){height:6px;animation-delay:.15s}
+.sp-eq-bar:nth-child(3){height:4px;animation-delay:.3s}
+@keyframes spEq{0%{height:2px}100%{height:8px}}
+.sp-info{flex:1;min-width:0}
+.sp-title{font:500 11px/1.2 'Roboto',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-prog{position:absolute;bottom:0;left:7px;right:7px;height:2px;border-radius:1px;
+  background:rgba(255,255,255,.08);overflow:hidden}
+.sp-prog-bar{height:100%;width:35%;background:#1DB954;border-radius:1px;
+  animation:spProg 12s linear infinite}
+@keyframes spProg{0%{width:0}100%{width:100%}}
+
+/* ── Speech bubbles ── */
+.bubbles{position:absolute;bottom:60px;left:30px;width:290px;height:220px;pointer-events:none;overflow:visible;z-index:5}
+.bub{position:absolute;bottom:0;left:50%;
+  background:var(--surface);border:1px solid rgba(135,45,237,.25);
+  border-radius:2px 10px 10px 10px;padding:6px 12px;
+  font:400 11.5px/1.35 'Roboto Mono',monospace;color:var(--dim);white-space:nowrap;
+  opacity:0;animation:bubFloat 12s linear infinite}
+.bub::after{content:'';position:absolute;top:-7px;left:12px;
+  border:5px solid transparent;border-bottom-color:rgba(135,45,237,.25);border-left-color:rgba(135,45,237,.25)}
+.bub:nth-child(1){animation-delay:0s}
+.bub:nth-child(2){animation-delay:2s}
+.bub:nth-child(3){animation-delay:4s}
+.bub:nth-child(4){animation-delay:6s}
+.bub:nth-child(5){animation-delay:8s}
+.bub:nth-child(6){animation-delay:10s}
+@keyframes bubFloat{
+  0%{opacity:0;transform:translate(-50%,0) scale(.9)}
+  3%{opacity:.9;transform:translate(-50%,0) scale(1)}
+  12%{opacity:.9;transform:translate(-50%,-40px)}
+  15%{opacity:0;transform:translate(-50%,-55px) scale(.95)}
+  100%{opacity:0;transform:translate(-50%,-55px)}}
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div class="scan"></div>
+<div class="logo-w"><img src="astronomer-logo.svg" alt="Astronomer"></div>
+<div class="prog" id="prog"></div>
+<div class="snum" id="snum"></div>
+<div class="hint">arrow keys / space</div>
+
+<div class="deck" id="deck">
+
+<!-- 1 TITLE -->
+<section class="slide active">
+  <div class="fr fr-c fr-gold" style="max-width:660px;position:relative;overflow:visible">
+    <img src="rocket.png" alt="" class="rocket-float">
+    <div class="eyebrow">Astronomer workshop</div>
+    <h1 style="margin-top:4px">AstroTrips</h1>
+    <div class="divider divider-c"></div>
+    <h3 style="margin-top:4px">Airflow ELT Workshop</h3>
+    <p style="margin-top:18px;">Build interplanetary data pipelines with Airflow 3 and Astro IDE.</p>
+    <p style="margin-top:14px;font:400 12px 'Roboto Mono',monospace;color:var(--dim);letter-spacing:.5px;animation:subtlePulse 3s ease-in-out infinite">&#9679; Take a seat. We launch shortly.</p>
+  </div>
+</section>
+
+<!-- 2 HOW THIS WORKS — desk scene -->
+<section class="slide">
+  <div class="fr fr-c" style="max-width:780px;padding-bottom:24px">
+    <h2>How this session works</h2>
+    <div class="divider divider-c"></div>
+    <p style="max-width:540px;margin:0 auto 6px">Think of it as a co-working live stream. You build at your pace while I work through the same exercises and explain concepts.</p>
+    <div class="desk-scene">
+      <!-- Left monitor -->
+      <div class="desk-mon desk-mon-l">
+        <div class="mon-outer mon-border-l">
+          <div class="mon-bar"><div class="mon-dot" style="background:var(--red)"></div><div class="mon-dot" style="background:var(--gold)"></div><div class="mon-dot" style="background:var(--green)"></div><span>Zoom</span></div>
+          <div class="mon-screen">
+            <div class="zoom-body">
+              <div class="zoom-tile zoom-host"><img src="headshot.jpg" alt="Host"></div>
+              <div class="zoom-tile zoom-peer">You</div>
+              <div class="zoom-tile zoom-peer">You</div>
+              <div class="zoom-tile zoom-peer">You</div>
+            </div>
+          </div>
+          <div class="mon-chin"></div>
+        </div>
+        <div class="mon-stand"></div>
+        <div class="mon-base"></div>
+      </div>
+      <!-- Right monitor -->
+      <div class="desk-mon desk-mon-r">
+        <div class="mon-outer mon-border-r">
+          <div class="mon-bar"><div class="mon-dot" style="background:var(--red)"></div><div class="mon-dot" style="background:var(--gold)"></div><div class="mon-dot" style="background:var(--green)"></div><span>GitHub</span></div>
+          <div class="mon-screen">
+            <div class="gh-body"><span class="w">astronomer</span> / devrel-public-workshops<br><span class="b">Branch:</span> workshops/astrotrips/etl<br><br><span class="w">exercises.md</span><br>- Exercise 0: Setup<br>- Exercise 1: Daily Report<br>- Challenge: Mission Control<br>- Exercise 2: Asset Scheduling<br>- Exercise 3: Dynamic Mapping<br>- Exercise 4: Human-in-the-Loop</div>
+            <div class="sp-player">
+              <div class="sp-cover"><div class="sp-cover-art"><svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div><div class="sp-eq"><div class="sp-eq-bar"></div><div class="sp-eq-bar"></div><div class="sp-eq-bar"></div></div></div>
+              <div class="sp-info"><div class="sp-title">Focus Flow</div></div>
+              <div class="sp-prog"><div class="sp-prog-bar"></div></div>
+            </div>
+          </div>
+          <div class="mon-chin"></div>
+        </div>
+        <div class="mon-stand"></div>
+        <div class="mon-base"></div>
+      </div>
+      <!-- Speech bubbles from Zoom -->
+      <div class="bubbles">
+        <div class="bub">so basically, a Dag is...</div>
+        <div class="bub">don't worry about this part</div>
+        <div class="bub">trust me, it gets cooler</div>
+        <div class="bub">...and that is an asset</div>
+        <div class="bub">ok let me show you something</div>
+        <div class="bub">wait, where was I?</div>
+      </div>
+      <!-- Desk accessories -->
+      <div class="desk-mug"></div>
+      <div class="desk-kb"></div>
+      <div class="desk-mouse"></div>
+      <!-- Desk surface -->
+      <div class="desk-surface"></div>
+      <div class="desk-edge"></div>
+    </div>
+    <p style="color:var(--gold);font-size:13px;margin-top:8px">Toss me on the second screen. I am your background music.<br><span style="color:var(--dim);font-size:12px">Keep GitHub and the Astro IDE in front. This session is about <strong style="color:var(--text)">you</strong> building.</span></p>
+    <a href="https://open.spotify.com/playlist/37i9dQZF1DWZZbwlv3Vmtr" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 12px 4px 8px;border-radius:16px;background:rgba(30,215,96,.08);border:1px solid rgba(30,215,96,.2);text-decoration:none;transition:border-color .2s,background .2s">
+      <svg width="14" height="14" viewBox="0 0 24 24" style="fill:#1DB954;flex-shrink:0"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      <span style="font:500 10px 'Roboto Mono',monospace;color:#1DB954">Focus Flow</span>
+      <span style="font:400 9px 'Roboto',sans-serif;color:var(--dim)">Need focus beats?</span>
+    </a>
+  </div>
+</section>
+
+<!-- 3 START EXERCISE 0 -->
+<section class="slide">
+  <div class="fr" style="max-width:580px">
+    <h2>Start exercise 0 now</h2>
+    <div class="divider"></div>
+    <p style="margin-bottom:16px">The Astro IDE and test deployment need a few minutes. Start now while we talk.</p>
+    <a href="https://astronomer.link/etl-workshop-github" target="_blank" style="display:block;text-align:center;margin-bottom:14px;padding:10px 18px;background:rgba(255,179,45,.08);border:2px solid rgba(255,179,45,.25);border-radius:10px;text-decoration:none;transition:border-color .2s">
+      <span style="font:500 11px 'Roboto Mono',monospace;color:var(--dim);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:3px">Open the exercises</span>
+      <span style="font:500 16px 'Roboto Mono',monospace;color:var(--gold)">astronomer.link/etl-workshop-github</span>
+    </a>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:12px">
+        <span class="rb gold">01</span>
+        <div><p style="margin:0;color:var(--text)">Open the link above and follow Exercise 0</p><p style="margin:2px 0 0;font-size:12px">Branch: <code>workshops/astrotrips/etl</code></p></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:12px">
+        <span class="rb gold">02</span>
+        <p style="margin:0;color:var(--text)">Set up the Astro IDE and test deployment</p>
+      </div>
+      <div style="display:flex;gap:12px;align-items:baseline">
+        <span class="rb gold">03</span>
+        <p style="margin:0;color:var(--text)">Run the <code>setup</code> Dag to create the database</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 SCENARIO + SCHEMA (3x3 grid) -->
+<section class="slide" data-reveals="2">
+  <div class="fr fr-c" style="max-width:880px;position:relative;overflow:visible">
+    <img src="rocket.png" alt="" class="rocket-float">
+    <div class="eyebrow">Scenario</div>
+    <h2>Welcome to AstroTrips</h2>
+    <div class="divider divider-c"></div>
+    <p style="max-width:580px;margin:0 auto 10px">AstroTrips is a fictional interplanetary travel company. Customers book trips to the Moon, Mars, and Europa. You build Airflow pipelines over their DuckDB database.</p>
+    <div class="schema-wrap">
+      <svg class="schema-lines" id="schemaLines"></svg>
+      <div class="schema-grid" id="schemaGrid">
+        <!-- row 1: customers ← BOOKINGS → payments -->
+        <div class="s-table" id="st-customers" style="border-color:rgba(38,118,255,.25)">
+          <h4 style="color:var(--blue)">customers</h4>
+          <ul><li class="pk">customer_id</li><li>full_name</li></ul>
+        </div>
+        <div class="s-table" id="st-bookings" style="border-color:rgba(255,179,45,.3);border-width:2px">
+          <h4 style="color:var(--gold)">bookings</h4>
+          <ul><li class="pk">booking_id</li><li class="fk">customer_id</li><li class="fk">route_id</li><li>booked_at</li><li>departure_date</li><li>return_date</li><li>passengers</li><li>promo_code</li></ul>
+        </div>
+        <div class="s-table" id="st-payments" style="border-color:rgba(25,186,90,.25)">
+          <h4 style="color:var(--green)">payments</h4>
+          <ul><li class="pk">payment_id</li><li class="fk">booking_id</li><li>paid_at</li><li>amount_usd</li></ul>
+        </div>
+        <!-- row 2: promo_codes, routes, planets -->
+        <div class="s-table" id="st-promo" style="border-color:rgba(240,58,71,.25)">
+          <h4 style="color:var(--red)">promo_codes</h4>
+          <ul><li class="pk">promo_code</li><li>discount_pct</li></ul>
+        </div>
+        <div class="s-table" id="st-routes" style="border-color:rgba(135,45,237,.25)">
+          <h4 style="color:var(--purple)">routes</h4>
+          <ul><li class="pk">route_id</li><li class="fk">destination_id</li><li>base_fare_usd</li></ul>
+        </div>
+        <div class="s-table" id="st-planets" style="border-color:rgba(19,189,215,.25)">
+          <h4 style="color:var(--teal)">planets</h4>
+          <ul><li class="pk">planet_id</li><li>planet_name</li><li>base_multiplier</li></ul>
+        </div>
+      </div>
+    </div>
+    <!-- Reveal 2: pipeline-filled tables -->
+    <div class="reveal-group" data-reveal="2">
+      <div class="rg-inner">
+        <div class="schema-wrap" style="margin-top:0;padding-top:10px">
+          <div class="schema-grid" id="schemaGridR3" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="s-table s-pipeline" id="st-report">
+              <h4 style="color:var(--dim)">daily_planet_report</h4>
+              <ul><li style="color:var(--dim);font-style:italic">9 columns</li></ul>
+            </div>
+            <div class="s-table s-pipeline" id="st-weather" style="animation-delay:1.5s">
+              <h4 style="color:var(--dim)">planet_weather</h4>
+              <ul><li style="color:var(--dim);font-style:italic">5 columns</li></ul>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;font:400 10px 'Roboto Mono',monospace;color:rgba(232,224,213,.2);letter-spacing:1px;text-transform:uppercase">&#8592; your pipelines fill these</div>
+          </div>
+        </div>
+        <div class="s-legend"><span><i style="background:var(--gold)"></i> Primary key</span><span><i style="background:var(--teal)"></i> Foreign key</span><span style="opacity:.6">bookings = central fact table</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 CRASH COURSE -->
+<section class="slide">
+  <div class="fr" style="max-width:940px">
+    <div class="eyebrow">Quick refresher</div>
+    <h2 style="display:flex;align-items:center;gap:14px">Airflow crash course <span class="lightsaber"><span class="ls-hilt"></span><span class="ls-blade"></span></span></h2>
+    <div class="divider"></div>
+    <div class="cols cols-2" style="margin-top:12px;align-items:start">
+      <div>
+        <div class="cc-term"><strong class="gold">Dag</strong><p>Directed Acyclic Graph. Your entire pipeline.</p></div>
+        <div class="cc-term"><strong class="teal">Task</strong><p>A single unit of work inside a Dag.</p></div>
+        <div class="cc-term"><strong style="color:var(--blue)">Operators &amp; Decorators</strong><p>Building blocks that define what a task does.</p></div>
+        <div class="cc-term"><strong style="color:var(--green)">Dependencies</strong><p>Implicit via TaskFlow return values, or explicit with <code>chain()</code>, <code>&gt;&gt;</code>, <code>&lt;&lt;</code>, <code>[a, b] &gt;&gt; c</code> for parallel.</p></div>
+        <div class="dag-viz">
+          <div class="dag-node" id="dn1">
+            <div class="dag-name">get_star_wars_person</div>
+            <div class="dag-type">@task</div>
+            <div class="dag-badge db-queued" id="db1">queued</div>
+          </div>
+          <svg class="dag-edge" viewBox="0 0 32 12" preserveAspectRatio="none"><path d="M0,6 L32,6" stroke="rgba(255,255,255,.15)" stroke-width="2"/><polygon points="28,3 32,6 28,9" fill="rgba(255,255,255,.15)"/></svg>
+          <div class="dag-node" id="dn2">
+            <div class="dag-name">print_name</div>
+            <div class="dag-type">@task.bash</div>
+            <div class="dag-badge db-queued" id="db2">queued</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="codeblock"><span class="kw">from</span> airflow.sdk <span class="kw">import</span> dag, task
+
+<span class="dc">@dag</span>
+<span class="kw">def</span> <span class="fn">star_wars_dag</span>():
+
+    <span class="dc">@task</span>
+    <span class="kw">def</span> <span class="fn">get_star_wars_person</span>():
+        <span class="kw">import</span> requests
+        <span class="kw">return</span> requests.get(<span class="st">"https://swapi.dev/api/people/1/"</span>).json()
+
+    <span class="dc">@task.bash</span>
+    <span class="kw">def</span> <span class="fn">print_name</span>(person):
+        <span class="kw">return</span> <span class="st">f"echo '{person['name']}'"</span>
+
+    _person = get_star_wars_person()
+    print_name(_person)
+
+<span class="fn">star_wars_dag</span>()</div>
+        <div class="termblock"><span class="term-ps">$</span> astro dev run dags test star_wars_dag<br><span class="term-dim">[09:15:01] {taskflow} INFO — get_star_wars_person ✓</span><br><span class="term-dim">[09:15:02] {taskflow} INFO — print_name ✓</span><br><span class="term-out">Luke Skywalker</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 ROADMAP -->
+<section class="slide">
+  <div class="fr" style="max-width:720px">
+    <h2>Workshop roadmap</h2>
+    <div class="divider"></div>
+    <div style="text-align:center;margin-top:10px">
+      <div class="tl-clock">
+        <div class="tl-clock-face"><div class="tl-clock-dot"></div></div>
+        <svg viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="5" r="1" fill="rgba(255,179,45,.2)"/>
+          <circle cx="17" cy="29" r="1" fill="rgba(255,179,45,.2)"/>
+          <circle cx="5" cy="17" r="1" fill="rgba(255,179,45,.2)"/>
+          <circle cx="29" cy="17" r="1" fill="rgba(255,179,45,.2)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="road-grid">
+      <div class="ri"><div class="rb" style="color:var(--teal)">Ex 1</div><div><div class="rt">Build the daily report Dag</div><div class="rs">SQL operators, data quality, assets</div></div></div>
+      <div class="tl-cell"><div class="tl-dot tl-dot-on"></div><span class="tl-pill tl-pill-teal">0 min</span></div>
+      <div class="ri ri-ch"><div class="rb gold">CH</div><div><div class="rt gold">Challenge: Mission Control</div><div class="rs">First 3 to submit via Zoom Q&A win a certification voucher</div></div></div>
+      <div class="tl-cell"><div class="tl-dot tl-dot-gold"></div><span class="tl-pill tl-pill-gold">~60 min</span></div>
+      <div class="ri"><div class="rb" style="color:var(--blue)">Ex 2</div><div><div class="rt">Asset-aware scheduling</div><div class="rs">Data-driven Dag dependencies</div></div></div>
+      <div class="tl-cell"><div class="tl-dot"></div></div>
+      <div class="ri"><div class="rb" style="color:var(--green)">Ex 3</div><div><div class="rt">ELT and dynamic task mapping</div><div class="rs">API ingestion, parallel with .expand()</div></div></div>
+      <div class="tl-cell"><div class="tl-dot"></div></div>
+      <div class="ri"><div class="rb" style="color:var(--purple)">Ex 4</div><div><div class="rt">Human-in-the-loop</div><div class="rs">Pause for manual input</div></div></div>
+      <div class="tl-cell"><div class="tl-dot tl-dot-green"></div><span class="tl-pill tl-pill-green">~90 min</span></div>
+    </div>
+    <p class="road-note" style="margin-top:12px;font-size:12px;color:var(--dim);line-height:1.5;border-left:2px solid rgba(255,179,45,.2);padding-left:10px"><strong style="color:var(--text)">Work at your own pace.</strong> Your trial stays active for 14 days, so you can continue after the session. The goal here: have fun and get a feel for Airflow and Astro.</p>
+  </div>
+</section>
+
+<!-- 7 CHALLENGE — animated radar -->
+<section class="slide">
+  <div class="fr fr-c" style="max-width:560px;border:1px solid rgba(255,179,45,.15);overflow:visible">
+    <div class="mc-wrap">
+      <div class="mc-radar">
+        <div class="mc-ring"></div>
+        <div class="mc-ring"></div>
+        <div class="mc-ring"></div>
+        <div class="mc-ring"></div>
+        <div class="mc-cross-h"></div>
+        <div class="mc-cross-v"></div>
+        <div class="mc-sweep"></div>
+        <div class="mc-blips">
+          <div class="mc-blip"></div>
+          <div class="mc-blip"></div>
+          <div class="mc-blip"></div>
+        </div>
+      </div>
+      <div class="mc-content">
+        <div class="mc-badge">Classified</div>
+        <h2 style="color:var(--gold);font-size:42px">Mission Control</h2>
+        <p style="max-width:400px;margin:10px auto 0">After Exercise 1, a secret challenge appears. Solve it and get the clearance code.</p>
+        <div style="display:inline-flex;align-items:center;gap:10px;margin-top:14px;padding:10px 18px;background:rgba(38,118,255,.1);border:2px solid rgba(38,118,255,.4);border-radius:10px;animation:mcPulse2 2.5s ease-in-out infinite">
+          <span style="font:400 28px 'League Gothic',sans-serif;color:var(--blue);line-height:1">Q&A</span>
+          <div style="text-align:left">
+            <div style="font:500 14px 'Roboto',sans-serif;color:var(--text)">Submit via Zoom Q&A</div>
+            <div style="font:400 11px 'Roboto Mono',monospace;color:var(--dim);margin-top:1px">Only hosts can see it. We reply privately.</div>
+          </div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:10px;margin-top:10px;padding:10px 18px;background:rgba(255,179,45,.08);border:1px solid rgba(255,179,45,.2);border-radius:10px">
+          <span style="font-size:26px;line-height:1">&#127942;</span>
+          <div style="text-align:left">
+            <div style="font:500 11px 'Roboto Mono',monospace;color:var(--gold);letter-spacing:1px;text-transform:uppercase">First 3 win</div>
+            <div style="font:400 14px 'Roboto',sans-serif;color:var(--text);margin-top:2px">Apache Airflow 3 Fundamentals Certification <span style="color:var(--gold);font-weight:500">($150)</span></div>
+            <div style="font:400 11px 'Roboto Mono',monospace;color:var(--dim);margin-top:2px">Astronomer Academy</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 LET'S GO — coffee + chat poll -->
+<section class="slide">
+  <div class="fr fr-gold" style="max-width:740px">
+    <div style="display:flex;gap:24px;align-items:stretch">
+      <div style="flex:1;text-align:center">
+        <h1 style="font-size:48px;text-align:center">Time to build</h1>
+        <div class="divider divider-c"></div>
+        <p style="font-size:15px;color:var(--text);margin-top:6px">Finish Exercise 0 if you haven't already.<br>Then jump into <strong class="gold">Exercise 1</strong>.</p>
+        <a href="https://astronomer.link/etl-workshop-github" target="_blank" style="display:inline-block;margin-top:6px;padding:5px 14px;background:rgba(255,179,45,.08);border:1.5px solid rgba(255,179,45,.25);border-radius:8px;text-decoration:none;transition:border-color .2s">
+          <span style="font:500 11px 'Roboto Mono',monospace;color:var(--gold)">astronomer.link/etl-workshop-github</span>
+        </a>
+        <div style="display:flex;justify-content:center;gap:0;align-items:flex-end">
+          <!-- coffee character -->
+          <div class="coffee-char">
+            <svg viewBox="0 0 160 200" fill="none">
+              <ellipse class="cc-shadow" cx="70" cy="188" rx="42" ry="6" fill="rgba(255,179,45,.08)"/>
+              <g class="cc-body">
+                <g transform="translate(30,50)">
+                  <path class="cc-steam" d="M15,0 Q18,-8 15,-16 Q12,-24 15,-32" stroke="rgba(232,224,213,.35)" stroke-width="3" stroke-linecap="round" fill="none"/>
+                  <path class="cc-steam" d="M35,0 Q38,-10 35,-20 Q32,-30 35,-38" stroke="rgba(232,224,213,.3)" stroke-width="3" stroke-linecap="round" fill="none"/>
+                  <path class="cc-steam" d="M55,0 Q58,-8 55,-14 Q52,-22 55,-28" stroke="rgba(232,224,213,.25)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                </g>
+                <path d="M25,65 L25,155 Q25,175 45,178 L95,178 Q115,175 115,155 L115,65 Z" fill="#2a2540" stroke="rgba(255,179,45,.35)" stroke-width="2.5"/>
+                <path d="M29,78 L111,78 L111,155 Q111,172 95,175 L45,175 Q29,172 29,155 Z" fill="#6B3A1F"/>
+                <ellipse cx="70" cy="78" rx="41" ry="6" fill="#8B5E3C"/>
+                <ellipse cx="62" cy="76" rx="14" ry="2.5" fill="rgba(255,220,160,.2)"/>
+                <path d="M115,90 Q140,90 140,115 Q140,140 115,140" stroke="rgba(255,179,45,.3)" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <g transform="translate(44,110)">
+                  <g class="cc-blink">
+                    <ellipse cx="12" cy="10" rx="6" ry="7" fill="white"/>
+                    <ellipse cx="12" cy="11" rx="4" ry="5" fill="#3a322e"/>
+                    <circle cx="10" cy="9" r="2" fill="white"/>
+                    <ellipse cx="40" cy="10" rx="6" ry="7" fill="white"/>
+                    <ellipse cx="40" cy="11" rx="4" ry="5" fill="#3a322e"/>
+                    <circle cx="38" cy="9" r="2" fill="white"/>
+                  </g>
+                  <path d="M18,28 Q26,36 34,28" stroke="#3a322e" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                </g>
+                <ellipse cx="50" cy="145" rx="7" ry="4" fill="rgba(240,58,71,.12)"/>
+                <ellipse cx="90" cy="145" rx="7" ry="4" fill="rgba(240,58,71,.12)"/>
+                <path class="cc-sweat" d="M110,95 Q112,88 110,82 Q108,88 110,95 Z" fill="rgba(143,207,254,.5)"/>
+              </g>
+            </svg>
+          </div>
+          <!-- tea character -->
+          <div class="coffee-char" style="margin-left:-20px">
+            <svg viewBox="0 0 160 200" fill="none">
+              <ellipse class="cc-shadow" cx="70" cy="188" rx="42" ry="6" fill="rgba(25,186,90,.06)"/>
+              <g class="cc-body" style="animation-delay:.5s">
+                <g transform="translate(30,40)">
+                  <path class="cc-steam" style="animation-delay:.3s" d="M15,0 Q18,-8 15,-16 Q12,-24 15,-32" stroke="rgba(232,224,213,.3)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                  <path class="cc-steam" style="animation-delay:.8s" d="M35,0 Q38,-10 35,-20 Q32,-30 35,-38" stroke="rgba(232,224,213,.25)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                  <path class="cc-steam" style="animation-delay:1.3s" d="M55,0 Q58,-8 55,-14 Q52,-22 55,-28" stroke="rgba(232,224,213,.2)" stroke-width="2" stroke-linecap="round" fill="none"/>
+                </g>
+                <!-- teacup: wider, shorter, with saucer -->
+                <ellipse cx="70" cy="175" rx="52" ry="5" fill="rgba(19,189,215,.06)"/>
+                <path d="M20,75 L15,150 Q15,170 40,174 L100,174 Q125,170 125,150 L120,75 Z" fill="#1e2a40" stroke="rgba(19,189,215,.3)" stroke-width="2.5"/>
+                <!-- tea liquid (green tint) -->
+                <path d="M24,85 L116,85 L121,150 Q121,168 100,171 L40,171 Q19,168 19,150 Z" fill="#3D6B45"/>
+                <ellipse cx="70" cy="85" rx="46" ry="6" fill="#5A9B5A"/>
+                <ellipse cx="60" cy="83" rx="14" ry="2.5" fill="rgba(140,220,140,.18)"/>
+                <!-- handle -->
+                <path d="M125,95 Q148,95 148,118 Q148,140 125,140" stroke="rgba(19,189,215,.25)" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <!-- tag string + label -->
+                <line x1="14" y1="82" x2="2" y2="100" stroke="rgba(19,189,215,.2)" stroke-width="1.5"/>
+                <rect x="-4" y="100" width="14" height="18" rx="2" fill="#1e2a40" stroke="rgba(19,189,215,.2)" stroke-width="1"/>
+                <!-- face -->
+                <g transform="translate(40,108)">
+                  <g class="cc-blink" style="animation-delay:.8s">
+                    <ellipse cx="12" cy="10" rx="5.5" ry="6.5" fill="white"/>
+                    <ellipse cx="12" cy="11" rx="3.5" ry="4.5" fill="#3a322e"/>
+                    <circle cx="10" cy="9" r="1.8" fill="white"/>
+                    <ellipse cx="46" cy="10" rx="5.5" ry="6.5" fill="white"/>
+                    <ellipse cx="46" cy="11" rx="3.5" ry="4.5" fill="#3a322e"/>
+                    <circle cx="44" cy="9" r="1.8" fill="white"/>
+                  </g>
+                  <path d="M20,26 Q29,32 38,26" stroke="#3a322e" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                </g>
+                <!-- blush -->
+                <ellipse cx="48" cy="142" rx="6" ry="3.5" fill="rgba(240,58,71,.1)"/>
+                <ellipse cx="92" cy="142" rx="6" ry="3.5" fill="rgba(240,58,71,.1)"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--dim)">Get your coffee or tea ready. This is where the fun starts.</p>
+        <div style="margin-top:12px;text-align:left;font-size:13px;color:var(--dim)">
+          <p style="color:var(--gold);font-size:12px;font-family:'Roboto Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Quick check-in via chat</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span class="rb gold" style="min-width:28px;font-size:16px">1</span><span style="color:var(--text)">Ready to go</span></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span class="rb gold" style="min-width:28px;font-size:16px">2</span><span style="color:var(--text)">Still setting up</span></div>
+          <div style="display:flex;gap:8px;align-items:center"><span class="rb gold" style="min-width:28px;font-size:16px">3</span><span style="color:var(--text)">Starting now</span></div>
+        </div>
+      </div>
+      <div class="zchat">
+        <div class="zchat-bar">Zoom Chat</div>
+        <div class="zchat-body"></div>
+        <div class="zchat-input">Type a number... <div class="zchat-dots"><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 ASTRO — why Astro -->
+<section class="slide" data-reveals="3">
+  <div class="fr" style="max-width:920px">
+    <div class="eyebrow">What you used today</div>
+    <h2>Why Astro?</h2>
+    <p style="margin-top:4px;max-width:660px">Other platforms give you the launchpad. <strong style="color:var(--gold)">We built the rocket.</strong></p>
+    <p style="font-size:12px;margin-top:4px;max-width:620px">GCP Composer and AWS MWAA host your Airflow. Their support stops at infrastructure. Astronomer engineers build Airflow itself. When something breaks at the engine level, you want the people who wrote the code.</p>
+    <div class="divider"></div>
+    <!-- Reveal 1: Three pillars (visible immediately) -->
+    <div class="cols cols-3" style="margin-top:10px">
+      <div class="card" style="border-top:2px solid var(--blue)">
+        <span class="card-l" style="color:var(--blue)">Build</span>
+        <p style="font-size:11px;line-height:1.5;color:var(--dim)">&#9679; <strong style="color:var(--text)">Astro IDE</strong> &middot; browser-based, Airflow-aware AI<br>&#9679; <strong style="color:var(--text)">AI Tooling</strong> &middot; Cursor, Claude Code, VS Code<br>&#9679; <strong style="color:var(--text)">Astro CLI</strong> &middot; local dev with hot-reload<br>&#9679; CI/CD &amp; preview environments<br>&#9679; Cosmos for dbt &middot; Terraform &middot; API</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--green)">
+        <span class="card-l" style="color:var(--green)">Run</span>
+        <p style="font-size:11px;line-height:1.5;color:var(--dim)">&#9679; <strong style="color:var(--text)">Astro Executor</strong> &middot; <strong style="color:var(--green)">2.5x</strong> concurrent tasks<br>&#9679; Elastic auto-scaling &middot; scale to zero<br>&#9679; Remote execution in your infra<br>&#9679; Multi-cloud: AWS, Azure, GCP (55+ regions)<br>&#9679; HA &middot; event-driven scheduling</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--teal)">
+        <span class="card-l" style="color:var(--teal)">Observe</span>
+        <p style="font-size:11px;line-height:1.5;color:var(--dim)">&#9679; <strong style="color:var(--text)">Real-time lineage</strong> via OpenLineage<br>&#9679; Data product SLAs &middot; freshness tracking<br>&#9679; Predictive alerts &middot; AI-assisted RCA<br>&#9679; Data quality monitoring<br>&#9679; Asset catalog &middot; health dashboard</p>
+      </div>
+    </div>
+    <!-- Reveal 2: More magic + moon -->
+    <div class="reveal-group" data-reveal="2">
+      <div class="rg-inner">
+        <div style="margin-top:10px;text-align:center">
+          <p style="font-size:10px;color:var(--dim);margin-bottom:6px;letter-spacing:.5px">And there is <strong style="color:var(--text)">so much more</strong> space magic with Airflow and Astro&hellip;</p>
+          <div class="feat-row">
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--green)"></span>Remote Execution</span>
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--blue)"></span>Disaster Recovery</span>
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--purple)"></span>Astro Private Cloud</span>
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--teal)"></span>Cosmos for dbt</span>
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--gold)"></span>Data Quality</span>
+            <span class="feat-pill"><span class="feat-dot" style="background:var(--red)"></span>RBAC</span>
+          </div>
+        </div>
+        <div class="moon-banner">
+          <span class="moon-txt">
+            Airflow to the Moon
+            <span class="moon-sub">...with Astro.</span>
+          </span>
+          <span class="moon-rocket"><img src="rocket.png" alt="rocket"><span class="moon-sparks"><span class="moon-spark"></span><span class="moon-spark"></span><span class="moon-spark"></span></span></span>
+        </div>
+      </div>
+    </div>
+    <!-- Reveal 3: Astronomer + Airflow KPIs -->
+    <div class="reveal-group" data-reveal="3">
+      <div class="rg-inner">
+        <div style="margin-top:10px">
+          <span class="card-l" style="color:var(--red);font-size:9px;display:block;margin-bottom:6px">Astronomer + Airflow = &#10084;&#65039;</span>
+          <div class="cols" style="grid-template-columns:repeat(4,1fr) 1.4fr;gap:8px">
+            <div class="card" style="text-align:center;border-top:2px solid var(--red)"><div class="stat-n" style="font-size:26px">11<span style="font-size:14px;color:var(--dim)"> / 41</span></div><div class="stat-l">PMC members</div></div>
+            <div class="card" style="text-align:center;border-top:2px solid var(--red)"><div class="stat-n" style="font-size:26px">11<span style="font-size:14px;color:var(--dim)"> / 25</span></div><div class="stat-l">Top committers</div></div>
+            <div class="card" style="text-align:center;border-top:2px solid var(--red)"><div class="stat-n" style="font-size:26px">23<span style="font-size:14px;color:var(--dim)"> / 77</span></div><div class="stat-l">Total committers</div></div>
+            <div class="card" style="text-align:center;border-top:2px solid var(--gold)"><div class="stat-n" style="font-size:26px">30M+</div><div class="stat-l">Monthly downloads</div></div>
+            <div class="card" style="text-align:center;border-top:2px solid var(--gold);padding:8px 10px">
+              <div style="font:500 8px 'Roboto Mono',monospace;color:var(--gold);letter-spacing:.5px;margin-bottom:3px">&#9733; 44.8K GITHUB STARS</div>
+              <svg viewBox="0 0 160 40" style="width:100%;height:36px;display:block" preserveAspectRatio="none">
+                <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--gold)" stop-opacity=".25"/><stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/></linearGradient></defs>
+                <path d="M0,40 31,35.4 45,33 55,30.6 63,28.3 73,25.9 82,23.5 89,21.2 99,18.7 108,16.3 117,14 127,11.6 134,9.2 141,6.9 148,4.5 160,0 L160,40 Z" fill="url(#sg)"/>
+                <polyline points="0,40 31,35.4 45,33 55,30.6 63,28.3 73,25.9 82,23.5 89,21.2 99,18.7 108,16.3 117,14 127,11.6 134,9.2 141,6.9 148,4.5 160,0" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="stat-l" style="margin-top:1px">More alive than ever</div>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top:8px;font-size:11px;color:var(--dim);border-left:2px solid rgba(255,179,45,.15);padding-left:8px;line-height:1.5">Would you book a space trip with the fuel station, or with the engineers who built the rocket?<br><span style="opacity:.5">Astronomer is the only Airflow vendor whose team writes the core. That is the difference.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 RECAP -->
+<section class="slide">
+  <div class="fr" style="max-width:600px">
+    <div class="eyebrow">Mission complete</div>
+    <h2>What you built today</h2>
+    <div class="divider"></div>
+    <div class="road">
+      <div class="ri"><div class="rb" style="color:var(--teal)">01</div><div class="rt">SQL workloads with Airflow operators</div></div>
+      <div class="ri"><div class="rb" style="color:var(--blue)">02</div><div class="rt">Data quality checks and asset scheduling</div></div>
+      <div class="ri"><div class="rb" style="color:var(--green)">03</div><div class="rt">Dynamic task mapping for parallelism</div></div>
+      <div class="ri"><div class="rb" style="color:var(--purple)">04</div><div class="rt">Human-in-the-loop workflows</div></div>
+    </div>
+    <p style="margin-top:16px;text-align:center">Your Astro trial stays active for 14 days. Keep experimenting.</p>
+  </div>
+</section>
+
+<!-- 11 CREW PHOTO -->
+<section class="slide">
+  <div class="fr fr-c" style="max-width:620px;position:relative;overflow:visible">
+    <img src="rocket.png" alt="" class="rocket-float" style="width:220px;top:-40px;left:-140px">
+    <div style="margin-bottom:10px">
+      <div class="eyebrow" style="color:var(--dim);font-size:8px;letter-spacing:4px">Astronomer Workshop</div>
+      <h1 style="font-size:48px;margin-top:2px">AstroTrips</h1>
+      <p style="font:400 16px 'League Gothic',sans-serif;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-top:2px">Airflow ELT Workshop</p>
+    </div>
+    <div class="divider divider-c" style="background:linear-gradient(90deg,transparent,var(--teal),transparent)"></div>
+    <h2 style="font-size:28px;margin-top:10px">Crew photo</h2>
+    <p style="max-width:420px;margin:4px auto 0;font-size:14px">Every crew takes a photo before landing.<br>I will screenshot my entire screen right now.</p>
+    <div class="vf-frame">
+      <div class="vf-corners"><span></span><span></span><span></span><span></span></div>
+      <div class="vf-rec"><span class="vf-rec-dot"></span>REC</div>
+      <div class="vf-center">3 &middot; 2 &middot; 1</div>
+      <div class="vf-emoji-rain">
+        <span class="vf-emoji">&#128640;</span>
+        <span class="vf-emoji">&#10084;&#65039;</span>
+        <span class="vf-emoji">&#128640;</span>
+        <span class="vf-emoji">&#11088;</span>
+        <span class="vf-emoji">&#128640;</span>
+        <span class="vf-emoji">&#10084;&#65039;</span>
+      </div>
+    </div>
+    <div class="crew-instruction">
+      <span class="crew-emoji-hint">&#128640;</span>
+      Drop a rocket in the Zoom chat!
+      <span class="crew-emoji-hint">&#128640;</span>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin-top:10px;opacity:.6">Your chat messages may appear in the screenshot. Only emoji, no pressure.</p>
+  </div>
+</section>
+
+<!-- 12 LINKEDIN -->
+<section class="slide">
+  <div style="max-width:620px;width:100%">
+    <div class="fr fr-c">
+      <div class="eyebrow" style="color:var(--blue)">Transmitting on all frequencies</div>
+      <h2 style="font-size:32px">Enjoyed the session?</h2>
+      <div class="divider divider-c"></div>
+      <p style="max-width:440px;margin:4px auto 0">Tag me, share what you built, tell me what clicked. Your feedback makes these workshops better for everyone.</p>
+      <div class="li-wrap">
+        <div class="li-beacon">
+          <div class="li-beacon-ring"></div>
+          <div class="li-beacon-ring"></div>
+          <div class="li-beacon-ring"></div>
+          <div class="li-avatar"><img src="headshot.jpg" alt="Volker Janz"></div>
+          <div class="li-logo-badge"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></div>
+        </div>
+        <div class="li-info">
+          <div class="li-name">Volker Janz</div>
+          <div class="li-handle">Senior Developer Advocate @ Astronomer</div>
+          <p style="margin-top:8px;font-size:13px">Writing about data engineering, Airflow, and building things that matter.</p>
+          <a class="li-btn" href="https://www.linkedin.com/in/vjanz/" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            linkedin.com/in/vjanz
+          </a>
+        </div>
+      </div>
+      <div class="li-notifs">
+        <div class="li-notif"><span class="notif-dot"></span>Volker posted an article</div>
+        <div class="li-notif"><span class="notif-dot"></span>New workshop announced</div>
+        <div class="li-notif"><span class="notif-dot"></span>Volker shared a project</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 CLOSING -->
+<section class="slide">
+  <div class="fr fr-c fr-gold" style="max-width:600px;position:relative;overflow:hidden">
+    <div class="hearts-wrap">
+      <span class="float-heart">&#10084;&#65039;</span>
+      <span class="float-heart">&#128156;</span>
+      <span class="float-heart">&#10084;&#65039;</span>
+      <span class="float-heart">&#128153;</span>
+      <span class="float-heart">&#10084;&#65039;</span>
+      <span class="float-heart">&#128156;</span>
+      <span class="float-heart">&#128153;</span>
+      <span class="float-heart">&#10084;&#65039;</span>
+    </div>
+    <h1 style="font-size:54px;position:relative;z-index:1">Thank you</h1>
+    <div class="divider divider-c" style="position:relative;z-index:1"></div>
+    <p style="font-size:20px;color:var(--gold);margin-top:14px;position:relative;z-index:1">You are amazing.</p>
+    <p style="font-size:17px;color:var(--text);margin-top:6px;position:relative;z-index:1">Great work today. You built real pipelines with Airflow 3.</p>
+    <p style="position:relative;z-index:1">Keep building, break things, and have fun with it.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;position:relative;z-index:1">
+      <code style="font-size:11px">astronomer.io/docs</code>
+      <code style="font-size:11px">astronomer.io/docs/learn</code>
+      <code style="font-size:11px">linkedin.com/in/vjanz</code>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* ── Slide engine with reveal support ── */
+const slides=document.querySelectorAll('.slide'),N=slides.length;
+let cur=0;
+
+const revealState={};
+slides.forEach((s,i)=>{
+  const total=parseInt(s.dataset.reveals||'0',10);
+  if(total>0) revealState[i]={total,current:1};
+});
+
+function measureHeight(g){
+  g.style.transition='none';
+  g.style.maxHeight='none';
+  g.style.position='absolute';
+  g.style.visibility='hidden';
+  g.style.display='block';
+  const h=g.scrollHeight;
+  g.style.position='';
+  g.style.visibility='';
+  g.style.display='';
+  g.style.maxHeight='0';
+  g.offsetHeight;
+  g.style.transition='';
+  return h;
+}
+
+function revealGroup(g){
+  if(g.classList.contains('revealed')) return;
+  const h=measureHeight(g);
+  g.classList.add('rg-growing');
+  g.style.maxHeight=h+'px';
+  setTimeout(()=>{
+    g.classList.remove('rg-growing');
+    g.classList.add('revealed','rg-show-children');
+    g.style.maxHeight='none';
+  },600);
+}
+
+function hideGroup(g){
+  g.classList.remove('revealed','rg-show-children','rg-growing');
+  g.style.maxHeight='0';
+}
+
+function setReveals(slideIdx,step){
+  const s=slides[slideIdx];
+  if(!s) return;
+  s.querySelectorAll('.reveal-group').forEach(g=>{
+    const r=parseInt(g.dataset.reveal,10);
+    if(step>=r) revealGroup(g);
+    else hideGroup(g);
+  });
+}
+
+function resetReveals(slideIdx){
+  const s=slides[slideIdx];
+  if(!s) return;
+  s.querySelectorAll('.reveal-group').forEach(g=>hideGroup(g));
+  if(revealState[slideIdx]) revealState[slideIdx].current=1;
+}
+
+function go(i){
+  if(i<0||i>=N)return;
+  const prev=cur;
+  if(i!==cur){
+    slides[cur].classList.remove('active');
+    setTimeout(()=>resetReveals(prev),550);
+  }
+  cur=i;
+  slides.forEach((s,j)=>{s.classList.remove('active');if(j===cur)s.classList.add('active')});
+  if(revealState[cur]) setReveals(cur,revealState[cur].current);
+  document.getElementById('prog').style.width=((cur+1)/N*100)+'%';
+  document.getElementById('snum').textContent=(cur+1)+' / '+N;
+}
+
+function advance(){
+  const rs=revealState[cur];
+  if(rs&&rs.current<rs.total){
+    rs.current++;
+    setReveals(cur,rs.current);
+    return;
+  }
+  go(cur+1);
+}
+
+function retreat(){
+  const rs=revealState[cur];
+  if(rs&&rs.current>1){
+    rs.current--;
+    setReveals(cur,rs.current);
+    return;
+  }
+  go(cur-1);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();retreat()}
+});
+let ty=0;
+document.addEventListener('touchstart',e=>{ty=e.touches[0].clientY});
+document.addEventListener('touchend',e=>{const d=ty-e.changedTouches[0].clientY;if(Math.abs(d)>40)d>0?advance():retreat()});
+go(0);
+
+/* ── Dag run animation ── */
+(function(){
+  const n1=document.getElementById('dn1'),b1=document.getElementById('db1');
+  const n2=document.getElementById('dn2'),b2=document.getElementById('db2');
+  if(!n1||!n2)return;
+  function set(node,badge,state,label){
+    node.className='dag-node'+(state?' dn-'+state:'');
+    badge.className='dag-badge db-'+(state||'queued');
+    badge.textContent=label;
+  }
+  function cycle(){
+    set(n1,b1,'','queued');set(n2,b2,'','queued');
+    setTimeout(()=>set(n1,b1,'running','\u25B6 running'),500);
+    setTimeout(()=>{set(n1,b1,'success','\u2713 success');set(n2,b2,'running','\u25B6 running')},5000);
+    setTimeout(()=>set(n2,b2,'success','\u2713 success'),10000);
+  }
+  cycle();setInterval(cycle,13000);
+})();
+
+/* ── Schema relationship lines ── */
+(function(){
+  const svg=document.getElementById('schemaLines');
+  const wrap=document.querySelector('.schema-wrap');
+  if(!svg||!wrap)return;
+  const NS='http://www.w3.org/2000/svg';
+  const rels=[
+    {a:'st-bookings',b:'st-customers',side:'h',color:'rgba(38,118,255,.4)',dur:2.4},
+    {a:'st-payments',b:'st-bookings', side:'h',color:'rgba(25,186,90,.4)', dur:2.6},
+    {a:'st-bookings',b:'st-routes',   side:'v',color:'rgba(135,45,237,.4)',dur:3.0},
+    {a:'st-routes',  b:'st-planets',  side:'h',color:'rgba(19,189,215,.4)',dur:2.8},
+  ];
+  function pos(el){
+    let x=0,y=0,cur=el;
+    while(cur&&cur!==wrap){x+=cur.offsetLeft;y+=cur.offsetTop;cur=cur.offsetParent}
+    return{l:x,t:y,w:el.offsetWidth,h:el.offsetHeight}
+  }
+  function draw(){
+    svg.innerHTML='';
+    const W=wrap.offsetWidth,H=wrap.offsetHeight;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    svg.style.width=W+'px';svg.style.height=H+'px';
+    for(const r of rels){
+      const ea=document.getElementById(r.a),eb=document.getElementById(r.b);
+      if(!ea||!eb)continue;
+      const a=pos(ea),b=pos(eb);
+      let x1,y1,x2,y2,d;
+      if(r.side==='h'){
+        const aR=a.l+a.w,bR=b.l+b.w;
+        const aMid=a.t+a.h/2,bMid=b.t+b.h/2;
+        if(a.l>bR){x1=a.l;x2=bR}else{x1=aR;x2=b.l}
+        y1=aMid;y2=bMid;
+        const mx=(x1+x2)/2;
+        d='M '+x1+' '+y1+' C '+mx+' '+y1+', '+mx+' '+y2+', '+x2+' '+y2;
+      }else{
+        x1=a.l+a.w/2;y1=a.t+a.h;
+        x2=b.l+b.w/2;y2=b.t;
+        const my=(y1+y2)/2;
+        d='M '+x1+' '+y1+' C '+x1+' '+my+', '+x2+' '+my+', '+x2+' '+y2;
+      }
+      const p=document.createElementNS(NS,'path');
+      p.setAttribute('d',d);p.setAttribute('stroke',r.color);
+      p.style.animationDuration=r.dur+'s';
+      svg.appendChild(p);
+    }
+  }
+  draw();
+  addEventListener('resize',draw);
+  new MutationObserver(draw).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']});
+})();
+
+/* ── Zoom chat simulator ── */
+(function(){
+  const names=[
+    {n:'MarsEngineer42',c:'teal'},{n:'DataLaura',c:'green'},{n:'PipelinePete',c:'purple'},
+    {n:'EuropaExplorer',c:'blue'},{n:'CoffeeFirst_Dev',c:'red'},{n:'AstroNinja',c:'gold'},
+    {n:'QueryQueen',c:'teal'},{n:'DagMaster99',c:'green'},{n:'NullPointer_Nora',c:'purple'},
+    {n:'LunarDev',c:'blue'},{n:'CelestialCoder',c:'gold'},{n:'ByteMeBuilder',c:'red'},
+    {n:'HeliumHacker',c:'teal'},{n:'DagDaddy',c:'green'},{n:'TaskFlowTina',c:'purple'},
+    {n:'OrbitOps',c:'blue'},{n:'CosmosCoder',c:'gold'},{n:'AirflowAce',c:'red'}
+  ];
+  const msgs=['1','1','1','1','2','1','3 \u2615','1','2','1','1','1 \uD83D\uDE80',
+    '1','2','1','1','3','1','1','2','1 \uD83C\uDF1F','1','1','1'];
+  const body=document.querySelector('.zchat-body');
+  if(!body)return;
+  body.innerHTML='';
+  let idx=0;
+  function addMsg(){
+    const p=names[Math.floor(Math.random()*names.length)];
+    const m=msgs[idx%msgs.length];idx++;
+    const el=document.createElement('div');
+    el.style.cssText='font:400 10px/1.3 "Roboto Mono",monospace;color:var(--dim);padding:2px 0;opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s';
+    el.innerHTML='<span class="cn cn-'+p.c+'">'+p.n+':</span> '+m;
+    body.appendChild(el);
+    requestAnimationFrame(()=>{el.style.opacity='.85';el.style.transform='translateY(0)'});
+    if(body.children.length>12){const old=body.firstElementChild;old.style.opacity='0';old.style.transform='translateY(-4px)';setTimeout(()=>old.remove(),400)}
+    body.scrollTop=body.scrollHeight;
+  }
+  setInterval(addMsg,1400);
+  for(let i=0;i<5;i++)setTimeout(addMsg,i*300);
+})();
+
+/* ══════════════════════════════════════════════
+   ANIMATED SPACE BACKGROUND — orbital system
+   ══════════════════════════════════════════════ */
+const c=document.getElementById('sky'),ctx=c.getContext('2d');
+let W,H;
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+addEventListener('resize',resize);resize();
+
+const STARS=[];
+for(let i=0;i<200;i++) STARS.push({
+  x:Math.random(),y:Math.random(),r:Math.random()*1.4+.3,
+  ph:Math.random()*6.28,sp:Math.random()*.012+.003,
+  col:['#E8E0D5','#E8E0D5','#E8E0D5','#FFB32D','#13BDD7','#872DED'][Math.floor(Math.random()*6)]
+});
+
+const CX=()=>W*.56, CY=()=>H*.50;
+const orbits=[
+  {rx:.34,ry:.13,tilt:-.15, sp:.0004,ph:0,   dotR:12, col:'#FFB32D', name:'sun'},
+  {rx:.25,ry:.095,tilt:-.08,sp:.0007,ph:2,   dotR:10, col:'#13BDD7'},
+  {rx:.44,ry:.17,tilt:-.22, sp:.00025,ph:4,  dotR:12, col:'#F03A47'},
+  {rx:.16,ry:.06,tilt:-.04, sp:.0012,ph:1,   dotR:8.5,col:'#19BA5A'},
+  {rx:.53,ry:.20,tilt:-.28, sp:.00015,ph:3,  dotR:11, col:'#2676FF'},
+  {rx:.09,ry:.035,tilt:.02, sp:.002,ph:5,    dotR:6,  col:'#872DED'},
+];
+
+function drawDeco(){
+  ctx.save();ctx.globalAlpha=.06;ctx.strokeStyle='#E8E0D5';ctx.lineWidth=.5;
+  ctx.setLineDash([4,6]);
+  const r0=Math.min(W,H)*.18;
+  ctx.beginPath();ctx.arc(W*.08,H*.12,r0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(W*.08,H*.12,r0*.78,0,Math.PI*2);ctx.stroke();
+  for(let a=0;a<Math.PI*2;a+=Math.PI/12){
+    const r1=r0-.5,r2=r0+8;
+    ctx.beginPath();ctx.moveTo(W*.08+Math.cos(a)*r1,H*.12+Math.sin(a)*r1);
+    ctx.lineTo(W*.08+Math.cos(a)*r2,H*.12+Math.sin(a)*r2);ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(W*.95,H*.9,Math.min(W,H)*.22,.8,2.8);ctx.stroke();
+  ctx.beginPath();ctx.arc(W*.95,H*.9,Math.min(W,H)*.17,.6,3.0);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha=.035;ctx.lineWidth=.5;
+  ctx.beginPath();ctx.moveTo(W*.3,0);ctx.lineTo(W*.7,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W*.6,0);ctx.lineTo(W*.35,H);ctx.stroke();
+  ctx.restore();
+}
+
+let t=0;
+function draw(){
+  requestAnimationFrame(draw);t++;
+  ctx.clearRect(0,0,W,H);
+
+  for(const s of STARS){
+    s.ph+=s.sp;
+    const op=.35+Math.sin(s.ph)*.3;
+    const r=s.r*(.85+Math.sin(s.ph)*.15);
+    ctx.globalAlpha=Math.max(0,op);ctx.fillStyle=s.col;
+    ctx.beginPath();ctx.arc(s.x*W,s.y*H,r,0,6.28);ctx.fill();
+  }
+
+  drawDeco();
+
+  const ox=CX(),oy=CY();
+  for(const o of orbits){
+    const rx=o.rx*W,ry=o.ry*H;
+    ctx.save();ctx.translate(ox,oy);ctx.rotate(o.tilt);
+    ctx.globalAlpha=.055;ctx.strokeStyle='#E8E0D5';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+
+  for(const o of orbits){
+    o.ph+=o.sp;
+    const rx=o.rx*W,ry=o.ry*H;
+    const a=o.ph;
+    const lx=Math.cos(a)*rx, ly=Math.sin(a)*ry;
+    const px=ox + lx*Math.cos(o.tilt) - ly*Math.sin(o.tilt);
+    const py=oy + lx*Math.sin(o.tilt) + ly*Math.cos(o.tilt);
+
+    // outer glow
+    ctx.globalAlpha=.10;
+    const g2=ctx.createRadialGradient(px,py,0,px,py,o.dotR*6);
+    g2.addColorStop(0,o.col);g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2;ctx.beginPath();ctx.arc(px,py,o.dotR*6,0,6.28);ctx.fill();
+
+    // inner glow
+    ctx.globalAlpha=.20;
+    const g1=ctx.createRadialGradient(px,py,0,px,py,o.dotR*2.5);
+    g1.addColorStop(0,o.col);g1.addColorStop(1,'transparent');
+    ctx.fillStyle=g1;ctx.beginPath();ctx.arc(px,py,o.dotR*2.5,0,6.28);ctx.fill();
+
+    // planet body
+    ctx.globalAlpha=.9;ctx.fillStyle=o.col;
+    ctx.beginPath();ctx.arc(px,py,o.dotR,0,6.28);ctx.fill();
+
+    // highlight
+    ctx.globalAlpha=.35;ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(px-o.dotR*.3,py-o.dotR*.3,o.dotR*.35,0,6.28);ctx.fill();
+  }
+
+  if(Math.random()<.005){
+    const sx=Math.random()*W,sy=Math.random()*H*.4;
+    const len=90+Math.random()*140,ang=.5+Math.random()*.5;
+    const ex=sx+Math.cos(ang)*len,ey=sy+Math.sin(ang)*len;
+    const gr=ctx.createLinearGradient(sx,sy,ex,ey);
+    gr.addColorStop(0,'rgba(232,224,213,.6)');gr.addColorStop(1,'rgba(232,224,213,0)');
+    ctx.globalAlpha=1;ctx.strokeStyle=gr;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();
+  }
+}
+draw();
+
+/* ── Feature pill highlight rotation ── */
+(function(){
+  const pills=document.querySelectorAll('.feat-pill');
+  if(!pills.length)return;
+  const cls=['fp-green','fp-blue','fp-purple','fp-teal','fp-gold','fp-red'];
+  let idx=0,prev=-1;
+  function cycle(){
+    if(prev>=0){
+      pills[prev].classList.remove('fp-active',cls[prev]);
+    }
+    pills[idx].classList.add('fp-active',cls[idx]);
+    prev=idx;
+    idx=(idx+1)%pills.length;
+  }
+  cycle();
+  setInterval(cycle,1800);
+})();
+</script>
+</body>
+</html>
