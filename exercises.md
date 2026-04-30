@@ -165,7 +165,7 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
 
 ## Create the Dag file
 
-1. In the Astro IDE, create a new file `dags/analyze_reviews.py`.
+1. In the Astro IDE, create a new file `dags/analyze_reviews.py`. To create a new file in an existing folder, right click on that folder and select `New File`.
 2. Add the following imports and constants:
 
     ```python
