@@ -13,6 +13,7 @@ _DUCKDB_CONN_ID = "duckdb_astrotrips"
     tags=["astrotrips", "ai", "reviews"],
     template_searchpath=f"{AIRFLOW_HOME}/include/sql",
     default_args={"retries": 3, "retry_delay": duration(seconds=10)},
+    max_active_tasks=1,
 )
 def route_reviews():
 
@@ -43,7 +44,7 @@ def route_reviews():
 
     _review_list = prepare_review_list(_reviews.output)
 
-    @task_group(default_args={"max_active_tis_per_dagrun": 1})
+    @task_group
     def handle_review(review_data):
 
         # route based on review content using LLM
@@ -58,7 +59,7 @@ def route_reviews():
             )
 
         @task.llm_branch(
-            model="gpt-5-mini",
+            llm_conn_id="pydanticai_default",
             system_prompt=(
                 "You are a support ticket router for AstroTrips, an interplanetary travel company. "
                 "Based on the customer review below, decide which team should handle it.\n\n"

@@ -1,4 +1,3 @@
-import airflow_ai_sdk as ai_sdk
 import os
 from pendulum import duration
 from airflow.configuration import AIRFLOW_HOME
@@ -7,13 +6,14 @@ from airflow.providers.common.sql.operators.sql import (
     SQLInsertRowsOperator,
 )
 from airflow.sdk import Asset, chain, dag, task
+from pydantic import BaseModel
 from pydantic_ai import BinaryContent
 from typing import Literal
 
 _DUCKDB_CONN_ID = "duckdb_astrotrips"
 
 
-class ReviewAnalysis(ai_sdk.BaseModel):
+class ReviewAnalysis(BaseModel):
     sentiment: Literal["positive", "negative", "neutral"]
     category: Literal["safety", "service", "value", "experience"]
     summary: str
@@ -45,7 +45,7 @@ def analyze_reviews():
         ]
 
     @task.llm(
-        model="gpt-5-mini",
+        llm_conn_id="pydanticai_default",
         system_prompt=(
             "You are a customer review analyst for AstroTrips, an interplanetary travel company. "
             "Analyze the given trip review and extract:\n"

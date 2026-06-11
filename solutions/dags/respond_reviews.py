@@ -4,7 +4,7 @@ from airflow.exceptions import AirflowSkipException
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.hitl import HITLBranchOperator
 from airflow.sdk import Asset, chain, dag, task, task_group
-from pydantic_ai import Agent
+from pydantic_ai.toolsets import FunctionToolset
 
 from include.agent_tools import find_similar_reviews, lookup_booking
 
@@ -57,8 +57,8 @@ def respond_reviews():
                 f"Full review:\n{data['text']}"
             )
 
-        @task.agent(agent=Agent(
-            "gpt-5-mini",
+        @task.agent(
+            llm_conn_id="pydanticai_default",
             system_prompt=(
                 "You are a customer service agent for AstroTrips, an interplanetary travel company. "
                 "Your job is to draft a professional, empathetic response to a customer's trip review.\n\n"
@@ -73,8 +73,9 @@ def respond_reviews():
                 "- Keep the response under 200 words.\n"
                 "- Sign off as 'AstroTrips Customer Experience Team'."
             ),
-            tools=[lookup_booking, find_similar_reviews],
-        ))
+            toolsets=[FunctionToolset(tools=[lookup_booking, find_similar_reviews])],
+            enable_hitl_review=True,
+        )
         def draft_response(prompt: str) -> str:
             return prompt
 
