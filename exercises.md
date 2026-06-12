@@ -161,9 +161,9 @@ This workshop comes with 2 React-based Airflow plugins. The first one is a dashb
 
     Right now, the plugin is empty, let's change that and load in the models trained in the MLOps 101 workshop!
 
-2. Go to the Dags overview page (1) and search for the `load_trained_model_examples` Dag (2), click on the Play button (3).
+2. Go to the Dags overview page and search for the `setup` Dag. Run it by clicking the play button.
 
-    ![Run the load_trained_model_examples Dag](doc/screenshot-run-load-trained-model-examples.png)
+    ![]
 
 3. In the popup, trigger a Single Run of the Dag by clicking the **Trigger** button. Wait for the run to finish (you'll see a green checkmark next to the timestamp of the "Latest Run"). If you are running this workshop in a cloud environment like the Astro IDE it might take a minute for the worker to spin up.
 
@@ -186,7 +186,7 @@ The `culinary_personas` clustering can only sort passengers *after* they have sp
 
 # Exercise 2: Train a regression model with traditional features
 
-1. In the Airflow UI, run the `setup` Dag using the play button.
+1. If you are using the Astro IDE, in the Airflow UI, run the `setup` Dag again using the play button.
 
     ![Run setup Dag](doc/screenshot-run-setup-dag.png)
 
