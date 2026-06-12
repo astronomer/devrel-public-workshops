@@ -2,22 +2,22 @@
 
 # Exercises
 
-- [Exercise 0: Setup](#setup)
+- [Exercise 0: Setup](#exercise-0-setup)
     - [Set up the workshop environment using the Astro CLI](#set-up-the-workshop-environment-using-the-astro-cli)
     - [Set up the workshop environment using the Astro IDE](#set-up-the-workshop-environment-using-the-astro-ide)
 - [Exercise 1: Explore the MLOps dashboard](#exercise-1-explore-the-mlops-dashboard)
-- [Exercise 2: Train a regression model with traditional features](#exercise-1-train-a-regression-model)
-- [Exercise 3: Improve a regression model with AI features](#exercise-2-engineer-context-for-ai)
+- [Exercise 2: Train a regression model with traditional features](#exercise-2-train-a-regression-model-with-traditional-features)
+- [Exercise 3: Improve a regression model with AI features](#exercise-2-train-a-regression-model-with-traditional-features-1)
 - [Challenge: Mission control](#challenge-mission-control)
-- [Bonus Exercise 4: Use a trained ML model to improve AI (Dag-as-a-tool)](#exercise-3-dag-as-a-tool-for-the-sales-email-agent)
-- [Bonus Exercise 5: Context engineering to improve AI](#exercise-3-dag-as-a-tool-for-the-sales-email-agent)
-- [Bonus Exercise 6: Self-improving Agent with Decision traces](#exercise-4-self-improving-agent-with-decision-traces)
+- [Bonus Exercise 4: Use a trained ML model to improve AI (Dag-as-a-tool)](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
+- [Bonus Exercise 5: Context engineering to improve AI](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
+- [Bonus Exercise 6: Self-improving Agent with Decision traces](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
 
 ---
 
 # Exercise 0: Setup
 
-You can complete this workshop either using the [Astro CLI](#set-up-using-the-astro-cli) or the [Astro IDE](#set-up-using-the-astro-ide).
+You can complete this workshop either using the [Astro CLI](#set-up-the-workshop-environment-using-the-astro-cli) or the [Astro IDE](#set-up-the-workshop-environment-using-the-astro-ide).
 
 ## Set up the workshop environment using the Astro CLI
 
@@ -43,7 +43,7 @@ The Astro CLI is a freely available tool created by Astronomer that helps you ru
 
 5. You can now open the Airflow UI at `localhost:8080` in your browser.
 
-6. Continue with [Exercise 1: Explore the MLOps dashboard](#).
+6. Continue with [Exercise 1: Explore the MLOps dashboard](#exercise-1-explore-the-mlops-dashboard).
 
 ## Set up the workshop environment using the Astro IDE
 
@@ -69,7 +69,7 @@ Create a [free trial of Astro](https://www.astronomer.io/lp/signup/?utm_source=c
  - **ACCOUNT**: `astronomer`
  - **REPOSITORY**: `devrel-public-workshops`
  - _Keep Astro Project Path empty_
- - **BRANCH**: `/workshops/astrotrips/mlops-and-ai`
+ - **BRANCH**: `workshops/astrotrips/mlops-and-ai`
  - **AUTHENTICATION TYPE**: `None (public repository)`
  - Click _Connect_. The IDE will import and open the project for you.
 
@@ -142,7 +142,7 @@ This workshop relies on a DuckDB database and uses a Pydantic AI connection to i
 
     ![Open test deployment details](doc/screenshot-open-deployment-details.png)
 
-7. Continue with [Exercise 1: Explore the MLOps dashboard](#).
+7. Continue with [Exercise 1: Explore the MLOps dashboard](#exercise-1-explore-the-mlops-dashboard).
 
 # Exercise 1: Explore the MLOps dashboard
 
