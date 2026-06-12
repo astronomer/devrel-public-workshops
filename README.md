@@ -40,7 +40,7 @@ The [MLOps plugin](plugins/airflow-mlops-plugin) tracks all the ML experiments d
 
 The Email inbox plugin serves as an interface to view the results from the prospect <> AI interaction. 
 
-[TODO: ADD SCREENSHOT]
+![Email Inbox Plugin](doc/inbox_plugin_readme.png)
 
 ## Using Astro CLI
 
