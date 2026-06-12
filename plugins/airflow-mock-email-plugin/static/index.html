@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AstroTrips Inbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            moon: {
+              5: '#F7F4EF',
+              10: '#F0ECE5',
+              20: '#D9D4CC',
+              30: '#B5AFA8',
+              40: '#918A84',
+              50: '#736D6D',
+              60: '#625C66',
+              70: '#555261',
+              80: '#343247',
+              85: '#2A283E',
+              90: '#222036',
+              95: '#1A182E',
+              99: '#12101F',
+            },
+            gold: {
+              30: '#FFD080',
+              40: '#FFB32D',
+              50: '#E69E1E',
+            },
+            bPurple: { 60: '#872DED' },
+            bBlue: { 50: '#2676FF' },
+            bGreen: { 50: '#19BA5A' },
+            bTeal: { 50: '#13BDD7' },
+            bRed: { 50: '#F03A47' },
+            th: {
+              base: 'rgb(var(--th-base) / <alpha-value>)',
+              surface: 'rgb(var(--th-surface) / <alpha-value>)',
+              surface2: 'rgb(var(--th-surface2) / <alpha-value>)',
+              surface3: 'rgb(var(--th-surface3) / <alpha-value>)',
+              heading: 'rgb(var(--th-heading) / <alpha-value>)',
+              body: 'rgb(var(--th-body) / <alpha-value>)',
+              secondary: 'rgb(var(--th-secondary) / <alpha-value>)',
+              muted: 'rgb(var(--th-muted) / <alpha-value>)',
+              border: 'rgb(var(--th-border) / <alpha-value>)',
+              accent: 'rgb(var(--th-accent) / <alpha-value>)',
+              accent2: 'rgb(var(--th-accent2) / <alpha-value>)',
+            },
+          },
+          fontFamily: {
+            display: ['"League Gothic"', 'sans-serif'],
+            body: ['"Roboto"', 'system-ui', 'sans-serif'],
+            mono: ['"Roboto Mono"', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=League+Gothic&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --th-base: 18 16 31;
+      --th-surface: 34 32 54;
+      --th-surface2: 42 40 62;
+      --th-surface3: 52 50 71;
+      --th-heading: 255 255 255;
+      --th-body: 240 236 229;
+      --th-secondary: 145 138 132;
+      --th-muted: 115 109 109;
+      --th-border: 85 82 97;
+      --th-accent: 255 179 45;
+      --th-accent2: 255 208 128;
+      --th-glass: rgba(34, 32, 54, 0.8);
+      --th-banner: rgba(18, 16, 31, 0.85);
+      --th-scroll-track: #12101F;
+      --th-scroll-thumb: #343247;
+      --th-scroll-hover: #555261;
+    }
+
+    .light {
+      --th-base: 247 244 239;
+      --th-surface: 255 255 255;
+      --th-surface2: 240 236 229;
+      --th-surface3: 217 212 204;
+      --th-heading: 52 50 71;
+      --th-body: 85 82 97;
+      --th-secondary: 115 109 109;
+      --th-muted: 145 138 132;
+      --th-border: 181 175 168;
+      --th-accent: 135 45 237;
+      --th-accent2: 110 20 210;
+      --th-glass: rgba(255, 255, 255, 0.85);
+      --th-banner: rgba(247, 244, 239, 0.9);
+      --th-scroll-track: #F0ECE5;
+      --th-scroll-thumb: #D9D4CC;
+      --th-scroll-hover: #B5AFA8;
+    }
+
+    body {
+      font-family: 'Roboto', system-ui, sans-serif;
+      background: rgb(var(--th-base)) url('assets/background.png') center/cover no-repeat fixed;
+      transition: background-color 0.3s ease;
+    }
+    body.light {
+      background: rgb(var(--th-base)) url('assets/lightmode_background.png') center/cover no-repeat fixed;
+    }
+
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .glass-dark { backdrop-filter: blur(16px); background: var(--th-glass); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; }
+    .banner-header { background-color: var(--th-banner); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--th-scroll-track); }
+    ::-webkit-scrollbar-thumb { background: var(--th-scroll-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--th-scroll-hover); }
+  </style>
+</head>
+<body class="min-h-screen text-th-body">
+  <div id="root"></div>
+  <script type="text/babel" src="static/app.js"></script>
+</body>
+</html>

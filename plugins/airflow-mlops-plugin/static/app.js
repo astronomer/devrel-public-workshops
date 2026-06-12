@@ -148,27 +148,27 @@ function Checkbox({ checked, onChange }) {
 // ---------------------------------------------------------------------------
 
 const ML_GLOSSARY = {
-  rmse: "Root Mean Squared Error — prediction error in the same units as the target. Lower is better.",
-  mae: "Mean Absolute Error — average distance between prediction and actual value. Lower is better.",
-  mse: "Mean Squared Error — average of squared prediction errors. Lower is better.",
-  r2: "R-squared — how much of the variation the model explains. 1.0 = perfect fit, 0 = no better than guessing the average.",
-  r2_score: "R-squared — how much of the variation the model explains. 1.0 = perfect fit.",
+  rmse: "Root Mean Squared Error: prediction error in the same units as the target. Lower is better.",
+  mae: "Mean Absolute Error: average distance between prediction and actual value. Lower is better.",
+  mse: "Mean Squared Error: average of squared prediction errors. Lower is better.",
+  r2: "R-squared: how much of the variation the model explains. 1.0 = perfect fit, 0 = no better than guessing the average.",
+  r2_score: "R-squared: how much of the variation the model explains. 1.0 = perfect fit.",
   accuracy: "Fraction of predictions the model got right. 1.0 = every prediction correct.",
   precision: "Of everything the model flagged as positive, how many actually were. High precision = few false alarms.",
   recall: "Of all actual positives, how many the model found. High recall = few missed cases.",
-  f1: "Harmonic mean of precision and recall — balances both into one number. 1.0 is perfect.",
-  f1_score: "Harmonic mean of precision and recall — balances both into one number. 1.0 is perfect.",
-  f1_weighted: "F1 score weighted by class frequency — accounts for class imbalance.",
+  f1: "Harmonic mean of precision and recall; balances both into one number. 1.0 is perfect.",
+  f1_score: "Harmonic mean of precision and recall; balances both into one number. 1.0 is perfect.",
+  f1_weighted: "F1 score weighted by class frequency; accounts for class imbalance.",
   silhouette_score: "How well-separated clusters are. Ranges from −1 (wrong cluster) to 1 (perfectly separated).",
   inertia: "Sum of distances from each point to its cluster center. Lower = tighter, more compact clusters.",
   n_clusters: "Number of groups the algorithm divided the data into.",
   train_size: "Number of samples used to train the model.",
-  test_size: "Fraction (or count) of data held back to evaluate the model — not seen during training.",
+  test_size: "Fraction (or count) of data held back to evaluate the model; not seen during training.",
   learning_rate: "Step size for model weight updates. Smaller = slower training but often more precise.",
   max_depth: "Maximum levels in a decision tree. Deeper trees can memorize noise (overfit).",
   n_estimators: "Number of trees in the ensemble. More trees = more stable predictions but slower training.",
   colsample_bytree: "Fraction of features randomly sampled for each tree. Helps prevent overfitting.",
-  random_state: "Random seed for reproducibility — same seed guarantees same results every run.",
+  random_state: "Random seed for reproducibility; same seed guarantees same results every run.",
   model_type: "The algorithm used for training (e.g., XGBoost, Random Forest, KMeans).",
   features: "Input variables (columns) the model uses to make predictions.",
   enriched: "Whether additional engineered features were added beyond the raw columns.",
@@ -230,9 +230,10 @@ function MetricLabel({ name }) {
 // ---------------------------------------------------------------------------
 
 function SummaryCard({ label, value, icon, color, onClick }) {
+  const clickable = typeof onClick === "function";
   return (
     <div
-      className="bg-th-surface p-6 border border-th-border/20 fade-in transition-colors hover:border-th-accent/40 cursor-pointer"
+      className={`bg-th-surface p-6 border border-th-border/20 fade-in transition-colors ${clickable ? "hover:border-th-accent/40 cursor-pointer" : ""}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between mb-3">
@@ -242,6 +243,27 @@ function SummaryCard({ label, value, icon, color, onClick }) {
       <p className="text-xs text-th-secondary mt-1 font-mono uppercase tracking-wider">{label}</p>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Param value formatting
+// ---------------------------------------------------------------------------
+
+// A feature->weight map (feature_importances for a forest, coefficients for a
+// linear model) renders as its top features by magnitude, not "[object Object]".
+function topFeatures(obj, n = 3) {
+  return Object.entries(obj)
+    .filter(([, v]) => typeof v === "number")
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, n)
+    .map(([name, v]) => `${name} ${v.toFixed(3)}`)
+    .join(", ");
+}
+
+function formatParamValue(v) {
+  if (Array.isArray(v)) return v.join(", ");
+  if (v && typeof v === "object") return topFeatures(v) || JSON.stringify(v);
+  return String(v);
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +430,7 @@ function MetricsOverTimeChart({ runs, height = 220 }) {
         <div className="mt-2 px-3 py-2 bg-th-surface2 rounded-lg border border-th-border/30 text-sm">
           <span className="font-medium text-th-body">
             Run #{sortedRuns[hoveredRun].run_number || sortedRuns[hoveredRun].run_id}
-            {sortedRuns[hoveredRun].tags?.iteration && ` — ${sortedRuns[hoveredRun].tags.iteration}`}
+            {sortedRuns[hoveredRun].tags?.iteration && ` · ${sortedRuns[hoveredRun].tags.iteration}`}
           </span>
           <div className="flex gap-3 mt-1">
             {visibleMetrics.map(key => {
@@ -485,7 +507,7 @@ function FeatureComparisonTable({ runs }) {
                       ) : isRemoved ? (
                         <span className="inline-block w-5 h-5 rounded-full bg-bRed-50/10 text-bRed-50/60 text-xs leading-5">✗</span>
                       ) : (
-                        <span className="text-th-muted">—</span>
+                        <span className="text-th-muted">-</span>
                       )}
                     </td>
                   );
@@ -504,14 +526,15 @@ function FeatureComparisonTable({ runs }) {
 // Dashboard view
 // ---------------------------------------------------------------------------
 
-function DashboardView({ summary, runs, onSelectRun, onNavigate }) {
+function DashboardView({ summary, runs, models, onSelectRun, onNavigate }) {
   const recentRuns = (runs || []).slice(0, 8);
+  const modelCount = new Set((models || []).map(m => m.model_name)).size;
   return (
     <div className="fade-in">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <SummaryCard label="Runs" value={summary.runs} icon={<IconChart />} color="bg-th-accent/20 text-th-accent" />
         <SummaryCard label="Experiments" value={summary.experiments} icon={<IconFlask />} color="bg-bPurple-60/20 text-bPurple-60" onClick={() => onNavigate("experiments")} />
-        <SummaryCard label="Runs" value={summary.runs} icon={<IconChart />} color="bg-th-accent/20 text-th-accent" onClick={() => onNavigate("experiments")} />
-        <SummaryCard label="Models" value={summary.models} icon={<IconBox />} color="bg-bGreen-50/20 text-bGreen-50" onClick={() => onNavigate("models")} />
+        <SummaryCard label="Models" value={modelCount} icon={<IconBox />} color="bg-bGreen-50/20 text-bGreen-50" onClick={() => onNavigate("models")} />
         <SummaryCard label="Visualizations" value={summary.plots} icon={<IconImage />} color="bg-bTeal-50/20 text-bTeal-50" onClick={() => onNavigate("plots")} />
       </div>
 
@@ -522,7 +545,7 @@ function DashboardView({ summary, runs, onSelectRun, onNavigate }) {
         {recentRuns.length === 0 ? (
           <div className="px-6 py-12 text-center text-th-secondary">
             <p className="text-lg mb-2">No runs yet</p>
-            <p className="text-sm">Run one of the ML DAGs to see results here.</p>
+            <p className="text-sm">Train an ML model and track it with the MlopsTracker to see results here.</p>
           </div>
         ) : (
           <div className="divide-y divide-th-surface2">
@@ -571,6 +594,13 @@ function ExperimentsView({ experiments, runs, onSelectRun, selectedRunIds, onTog
 
   return (
     <div className="space-y-4 fade-in">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="p-2 bg-bPurple-60/20 rounded-xl text-bPurple-60"><IconFlask /></div>
+        <div>
+          <h2 className="text-xl font-display text-th-heading tracking-wide">All Experiments</h2>
+          <p className="text-xs text-th-secondary font-mono tracking-wider">{(experiments || []).length} experiment{(experiments || []).length !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
       {totalSelected >= 2 && (
         <div className="sticky top-[73px] z-40 flex items-center gap-3 px-5 py-3 rounded-lg bg-th-accent/10 border border-th-accent/20 glass-dark">
           <IconCompare />
@@ -692,6 +722,12 @@ function ExperimentsView({ experiments, runs, onSelectRun, selectedRunIds, onTog
           </div>
         );
       })}
+      {(experiments || []).length === 0 && (
+        <div className="bg-th-surface rounded-lg border border-th-border/20 px-6 py-12 text-center text-th-secondary">
+          <p className="text-lg mb-2">No experiments yet</p>
+          <p className="text-sm">Train an ML model and track it with the MlopsTracker to see results here.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -755,7 +791,7 @@ function RunDetailView({ run, onBack }) {
                 <div key={k} className="flex justify-between items-center py-1.5 border-b border-th-border/30">
                   <span className="text-sm text-th-body inline-flex items-center"><MetricLabel name={k} /></span>
                   <span className="text-sm font-medium text-th-body font-mono truncate max-w-[200px]">
-                    {Array.isArray(v) ? v.join(", ") : String(v)}
+                    {formatParamValue(v)}
                   </span>
                 </div>
               ))}
@@ -804,6 +840,13 @@ function ModelsView({ models }) {
 
   return (
     <div className="space-y-6 fade-in">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="p-2 bg-bGreen-50/20 rounded-xl text-bGreen-50"><IconBox /></div>
+        <div>
+          <h2 className="text-xl font-display text-th-heading tracking-wide">All Models</h2>
+          <p className="text-xs text-th-secondary font-mono tracking-wider">{Object.keys(grouped).length} model{Object.keys(grouped).length !== 1 ? "s" : ""} registered</p>
+        </div>
+      </div>
       {Object.entries(grouped).map(([name, versions]) => (
         <div key={name} className="bg-th-surface rounded-lg border border-th-border/20 overflow-hidden">
           <div className="px-6 py-4 border-b border-th-border/20 flex items-center justify-between">
@@ -833,7 +876,7 @@ function ModelsView({ models }) {
       {Object.keys(grouped).length === 0 && (
         <div className="bg-th-surface rounded-lg border border-th-border/20 px-6 py-12 text-center text-th-secondary">
           <p className="text-lg mb-2">No models registered</p>
-          <p className="text-sm">Train an ML pipeline to see models here.</p>
+          <p className="text-sm">Train an ML model and track it with the MlopsTracker to see results here.</p>
         </div>
       )}
     </div>
@@ -1136,7 +1179,7 @@ function CompareDetailsTable({ runs }) {
   }, [runs, metricKeys]);
 
   const fmtVal = (v) => {
-    if (v == null) return "—";
+    if (v == null) return "-";
     if (typeof v === "number") return Math.abs(v) < 1 ? v.toFixed(6) : v.toFixed(2);
     if (Array.isArray(v)) return v.join(", ");
     return String(v);
@@ -1220,7 +1263,7 @@ function CompareDetailsTable({ runs }) {
                 <td className="py-1.5 px-3 font-mono text-xs text-th-body sticky left-0 bg-th-surface">{k}</td>
                 {runs.map((r, i) => (
                   <td key={i} className="text-center py-1.5 px-3 font-mono text-xs text-th-body">
-                    {r[k] || "—"}
+                    {r[k] || "-"}
                   </td>
                 ))}
               </tr>
@@ -1267,7 +1310,7 @@ function CompareRunsView({ runs, onBack }) {
 // Visualizations gallery view
 // ---------------------------------------------------------------------------
 
-function VisualizationsView({ onBack, onSelectRun, runs }) {
+function VisualizationsView({ onSelectRun, runs }) {
   const [plots, setPlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1291,11 +1334,6 @@ function VisualizationsView({ onBack, onSelectRun, runs }) {
 
   return (
     <div className="fade-in">
-      <button onClick={onBack} className="mb-4 text-sm text-th-accent hover:text-th-accent2 font-medium flex items-center gap-1 transition-colors">
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to dashboard
-      </button>
-
       <div className="mb-6 flex items-center gap-3">
         <div className="p-2 bg-bTeal-50/20 rounded-xl text-bTeal-50"><IconImage /></div>
         <div>
@@ -1311,7 +1349,7 @@ function VisualizationsView({ onBack, onSelectRun, runs }) {
       ) : plots.length === 0 ? (
         <div className="bg-th-surface rounded-lg border border-th-border/20 px-6 py-12 text-center text-th-secondary">
           <p className="text-lg mb-2">No visualizations yet</p>
-          <p className="text-sm">Run an ML pipeline to generate plots.</p>
+          <p className="text-sm">Train an ML model and track it with the MlopsTracker to see results here.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -1530,7 +1568,7 @@ function App() {
           </div>
         )}
 
-        {view === "dashboard" && <DashboardView summary={summary} runs={runs} onSelectRun={handleSelectRun} onNavigate={navigateTo} />}
+        {view === "dashboard" && <DashboardView summary={summary} runs={runs} models={models} onSelectRun={handleSelectRun} onNavigate={navigateTo} />}
         {view === "experiments" && (
           <ExperimentsView
             experiments={experiments}
@@ -1550,7 +1588,7 @@ function App() {
           <CompareRunsView runs={compareRuns} onBack={() => setView("experiments")} />
         )}
         {view === "plots" && (
-          <VisualizationsView runs={runs} onBack={() => navigateTo("dashboard")} onSelectRun={handleSelectRun} />
+          <VisualizationsView runs={runs} onSelectRun={handleSelectRun} />
         )}
       </div>
     </div>

@@ -1,4 +1,6 @@
 """
+DO NOT MODIFY!
+
 Syncs DuckDB ML tracking data to an Airflow Variable.
 
 Workaround for Astro deployments where the MLOps plugin runs on the

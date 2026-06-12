@@ -75,17 +75,18 @@ def plot_regression(results: dict, tracker) -> dict:
         [importances[i] for i in sorted_idx],
         color="#4A90D9",
     )
+    panel_title = "Coefficients" if importance_label == "Coefficient" else "Feature Importance"
     axes[2].set_xlabel(importance_label)
-    axes[2].set_title("Feature Importance")
+    axes[2].set_title(panel_title)
 
     model_type = results.get("model_type", "LinearRegression")
     enriched = results["params"].get("enriched", False)
     label = "with features" if enriched else "raw data"
-    fig.suptitle(
+    default_title = (
         f"Catering Revenue per Booking Party \u2014 {model_type} ({label}) \u2014 "
-        f"R\u00b2 = {results['metrics']['r2']:.3f}, RMSE = {results['metrics']['rmse']:.0f}",
-        fontsize=14, fontweight="bold",
+        f"R\u00b2 = {results['metrics']['r2']:.3f}, RMSE = {results['metrics']['rmse']:.0f}"
     )
+    fig.suptitle(results.get("plot_title", default_title), fontsize=14, fontweight="bold")
     plt.tight_layout()
 
     return _finish_figure(fig, tracker, run_id, "regression_overview")

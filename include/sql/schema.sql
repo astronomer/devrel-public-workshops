@@ -14,10 +14,9 @@ CREATE TABLE IF NOT EXISTS routes (
 );
 
 CREATE TABLE IF NOT EXISTS customers (
-  customer_id  INTEGER PRIMARY KEY,
-  full_name    VARCHAR NOT NULL,
-  travel_type  VARCHAR NOT NULL DEFAULT 'leisure',  -- 'leisure' or 'business'
-  loyalty_tier VARCHAR NOT NULL DEFAULT 'bronze'    -- 'bronze', 'silver', 'gold'
+  customer_id    INTEGER PRIMARY KEY,
+  full_name      VARCHAR NOT NULL,
+  home_planet_id INTEGER REFERENCES planets(planet_id)  -- which planet the customer lives on (personalization)
 );
 
 CREATE TABLE IF NOT EXISTS promo_codes (
@@ -33,10 +32,6 @@ CREATE TABLE IF NOT EXISTS bookings (
   departure_date DATE NOT NULL,
   return_date    DATE NOT NULL,
   passengers     INTEGER NOT NULL,
-  children           INTEGER NOT NULL DEFAULT 0,
-  booking_agent      VARCHAR NOT NULL DEFAULT 'chatgpt',    -- 'chatgpt', 'claude', 'gemini', 'llama'
-  accommodation_type VARCHAR NOT NULL DEFAULT 'mid_orbit',  -- 'high_orbit', 'mid_orbit', 'low_orbit'
-  food_plan          VARCHAR NOT NULL DEFAULT 'breakfast',   -- 'all_inclusive', 'breakfast', 'budget'
   promo_code     VARCHAR
 );
 
@@ -47,23 +42,50 @@ CREATE TABLE IF NOT EXISTS payments (
   amount_usd  INTEGER NOT NULL
 );
 
-CREATE SEQUENCE IF NOT EXISTS meal_order_id_seq START 1;
-
 CREATE TABLE IF NOT EXISTS menu_items (
   item_id        INTEGER PRIMARY KEY,
   item_name      VARCHAR NOT NULL,
   category       VARCHAR NOT NULL,  -- appetizer, main, dessert, beverage
-  cuisine        VARCHAR NOT NULL,  -- destination cuisine (lunar / martian / europan / universal)
   price_usd      DOUBLE NOT NULL,
   is_vegetarian  BOOLEAN NOT NULL DEFAULT false,
   spice_level    INTEGER NOT NULL DEFAULT 0  -- 0 (none) to 3 (extreme)
 );
 
+CREATE SEQUENCE IF NOT EXISTS meal_order_id_seq START 1;
 CREATE TABLE IF NOT EXISTS meal_orders (
   order_id    INTEGER PRIMARY KEY DEFAULT nextval('meal_order_id_seq'),
   booking_id  INTEGER NOT NULL REFERENCES bookings(booking_id),
-  trip_day    INTEGER NOT NULL,    -- day 1, 2, 3... of the trip
-  meal_type   VARCHAR NOT NULL,    -- breakfast, lunch, dinner
+  customer_id INTEGER NOT NULL REFERENCES customers(customer_id),
   item_id     INTEGER NOT NULL REFERENCES menu_items(item_id),
   quantity    INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE SEQUENCE IF NOT EXISTS cosmarket_order_id_seq START 1;
+CREATE TABLE IF NOT EXISTS cosmarket_orders (
+  order_id     INTEGER PRIMARY KEY DEFAULT nextval('cosmarket_order_id_seq'),
+  customer_id  INTEGER NOT NULL REFERENCES customers(customer_id),  -- delivered to the customer's home planet
+  item_id      INTEGER NOT NULL REFERENCES menu_items(item_id),
+  ordered_at   TIMESTAMP NOT NULL,
+  quantity     INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE SEQUENCE IF NOT EXISTS email_thread_id_seq START 1;
+CREATE TABLE IF NOT EXISTS email_threads (
+  thread_id    INTEGER PRIMARY KEY DEFAULT nextval('email_thread_id_seq'),
+  customer_id  INTEGER NOT NULL REFERENCES customers(customer_id),  -- prospect is a known customer (personalization)
+  subject      VARCHAR NOT NULL,
+  booking_id   INTEGER REFERENCES bookings(booking_id),  -- sequence outcome: the booking it converted to; NULL = no booking
+  created_at   TIMESTAMP DEFAULT current_timestamp,
+  updated_at   TIMESTAMP DEFAULT current_timestamp
+);
+
+CREATE SEQUENCE IF NOT EXISTS email_message_id_seq START 1;
+CREATE TABLE IF NOT EXISTS email_messages (
+  message_id   INTEGER PRIMARY KEY DEFAULT nextval('email_message_id_seq'),
+  thread_id    INTEGER NOT NULL REFERENCES email_threads(thread_id),
+  turn         INTEGER NOT NULL,   -- 1, 2, 3, ... order within the thread
+  direction    VARCHAR NOT NULL,   -- 'inbound' (prospect) / 'outbound' (agent)
+  sender       VARCHAR NOT NULL,   -- address shown in the inbox
+  body         VARCHAR NOT NULL,
+  created_at   TIMESTAMP DEFAULT current_timestamp
 );

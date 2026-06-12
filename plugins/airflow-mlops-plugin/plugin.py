@@ -9,12 +9,13 @@ Data sources:
     is populated by the ``plugin_sync`` DAG running on a worker.
   - Fallback: reads directly from the DuckDB file at
     $AIRFLOW_HOME/include/astrotrips.duckdb (works locally where the
-    webserver and workers share a filesystem).
+    API server and workers share a filesystem).
 """
 
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -35,6 +36,13 @@ DB_PATH = os.path.join(
     "include",
     "astrotrips.duckdb",
 )
+
+# Inline the nav icon as a data URI. A path here is resolved against the UI's
+# <base href>, so an absolute /mlops/... path drops Astro's deployment sub-path
+# and 404s in the cloud. A data URI renders with no fetch, base path or proxy.
+_ICON_DATA_URI = "data:image/svg+xml;base64," + base64.b64encode(
+    (BASE_DIR / "assets" / "icon.svg").read_bytes()
+).decode("ascii")
 
 app = FastAPI(title="MLOps Plugin")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -58,7 +66,7 @@ def _load_from_variable() -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# DuckDB fallback (works locally where webserver shares the worker filesystem)
+# DuckDB fallback (works locally where API server shares the worker filesystem)
 # ---------------------------------------------------------------------------
 
 def _db_records(sql: str, params: tuple = ()) -> list[tuple]:
@@ -407,5 +415,6 @@ class MlopsPlugin(AirflowPlugin):
             "destination": "nav",
             "category": "browse",
             "url_route": "mlops",
+            "icon": _ICON_DATA_URI,
         }
     ]

@@ -1,4 +1,4 @@
 experiment_id,experiment_name,description,created_at
-1,daily_catering_revenue,Predict total catering spend per booking-day,2026-02-10T09:00:00
-2,dessert_prediction,Predict which dessert a customer orders,2026-02-11T10:00:00
-3,culinary_personas,Segment customers by dining behavior,2026-02-12T11:00:00
+10,holodeck_minutes,Predict total minutes a party spends in the holodeck across a journey,2026-02-10 09:00:00
+11,dessert_prediction,Predict which dessert a customer orders,2026-02-11 10:00:00
+12,culinary_personas,Segment customers by dining behavior,2026-02-12 11:00:00

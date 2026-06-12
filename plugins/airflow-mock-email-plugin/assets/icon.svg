@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    :root { --ic: #1C1A2E; }
+    @media (prefers-color-scheme: dark) { :root { --ic: #E8A427; } }
+    path, rect { stroke: var(--ic); }
+  </style>
+  <rect x="2" y="4" width="20" height="16" rx="2"/>
+  <path d="M2 7l10 6 10-6"/>
+</svg>

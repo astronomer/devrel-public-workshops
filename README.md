@@ -1,36 +1,53 @@
-![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.1-blue?style=for-the-badge)
+![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.2-blue?style=for-the-badge)
 
-# Apache Airflow® and MLOps Workshop - 101
+# Apache Airflow® MLOps and AI workshop
 
-Welcome to the Apache Airflow and MLOps Workshop (101)! You will build an example pipeline for all three fundamental ML paradigms: classification, regression, and clustering, all orchestrated by Airflow and track the experiments in the MLOps Airflow plugin.
+Welcome to the [Apache Airflow®](https://airflow.apache.org/) for MLOps and AIOps Workshop! 
 
-What you will learn:
-- Using Airflow to orchestrate feature engineering.
-- Asset-based scheduling to trigger Dag runs based on successful completion of previous tasks.
-- Dynamic task mapping to train multiple models with different sets of hyperparameters.
-- Using an Airflow plugin to track ML experiments.
+This workshop shows advanced patterns of how to use Airflow to orchestrate AI and MLOps actions together.
+
+You will learn how to:
+- track ML experiments, runs, models, and visualizations directly in the Airflow UI with the MLOps plugin.
+- engineer features and train a regression model across a hyperparameter sweep to predict per-person, per-day catering spend.
+- improve that model by having an AI agent extract extra features from unstructured prospect emails.
+- (bonus) run the trained model in batch to forecast catering revenue across upcoming trips.
+- (bonus) build a sales-email agent and improve it with context engineering (RAG), a context layer, the ML model as a Dag-as-a-tool, and a decision-trace self-improvement loop.
 
 > [!NOTE]
 > tl;dr: jump directly to the [exercises](exercises.md).
 
 ## Prerequisites
 
-- Access to the [Astro IDE](https://www.astronomer.io/product/ide/).
+- Access to the [Astro IDE](https://www.astronomer.io/product/ide/) or having the [Astro CLI](https://www.astronomer.io/docs/astro/cli/get-started-cli) installed on your computer
 - Basic knowledge about Machine Learning with [scikit-learn](https://scikit-learn.org/stable/user_guide.html).
 
-## Scenario: AstroTrips Catering Predictions
+## Scenario: AstroTrips Catering Spend Predictions and Sales Email Agent
 
-AstroTrips is a fictional travel company specializing in interplanetary trips. Customers can book journeys to destinations like Mars, Venus, or Saturn, complete with launch windows, spacecraft assignments, and premium add-ons.
+AstroTrips is a fictional travel company specializing in interplanetary trips. Customers can book journeys to destinations like Mars, Venus, or Titan.
 
 ![AstroTrips](doc/astrotrips-banner.png)
 
-The underlying database used for AstroTrips is DuckDB, and it comes with a set of base tables and might be extended with additional tables depending on the workshop.
+This workshop has two parts: 
 
-![AstroTrips](doc/astrotrips-base-tables.png)
+1. Using classical MLOps to predict how much money a potential booking party will spend per person and per day on catering. Predictions are created based on relational data as well as features extracted by AI from emails. Run in batch, this prediction is used for revenue forecasting.
+2. Creating a Sales Email Agent that drafts responses to prospect inquiries. In the second part of the workshop you will improve the answers from an AI agent over time by adding context engineering, access to the context layer, as well as ML inference as a tool and lastly a self-improvement loop.
 
-The MLOps workshop centers around predicting culinary customer behavior, particularly their choice of dessert and total spending during their trip. The [MLOps plugin](plugins/airflow-mlops-plugin) tracks all the ML experiments directly in the Airflow UI.
+There are two plugins to support the workshop.
+
+The [MLOps plugin](plugins/airflow-mlops-plugin) tracks all the ML experiments directly in the Airflow UI.
 
 ![Plugin Dashboard](doc/plugin_readme.png)
+
+The Email inbox plugin serves as an interface to view the results from the prospect <> AI interaction. 
+
+[TODO: ADD SCREENSHOT]
+
+## Using Astro CLI
+
+> [!CAUTION]
+> This optional step can be skipped for regular workshop participation. It is intended for advanced users and exploration after the workshop.
+
+This workshop can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env`, then adjust the configuration values if needed. You can start the project with `astro dev start`. 
 
 ## Using MotherDuck (optional)
 
@@ -58,13 +75,6 @@ AIRFLOW_CONN_DUCKDB_ASTROTRIPS='{
 ```
 
 > **Note:** Ensure you also update any other references to the local DuckDB file path, such as `include/connections.yaml` if applicable.
-
-## Using Astro CLI (optional)
-
-> [!CAUTION]
-> This optional step can be skipped for regular workshop participation. It is intended for advanced exploration after the workshop.
-
-This workshop can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env`, then adjust the configuration values if needed. You can start the project with `astro dev start`. However, the workshop is primarily designed for use with the Astro IDE.
 
 ## Get started 
 
