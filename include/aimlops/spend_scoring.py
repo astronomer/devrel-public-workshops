@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-_MODEL_NAME = "spend_model"
+_MODEL_NAME = "spend_model_elastic_net."
 _DEFAULT_TRIP_DAYS = 7
 _AI_FEATURE_KEYS = ("trip_occasion", "enthusiasm", "budget_signal")
 _CATEGORICAL = (
