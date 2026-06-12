@@ -9,9 +9,8 @@
 - [Exercise 2: Train a regression model with traditional features](#exercise-2-train-a-regression-model-with-traditional-features)
 - [Exercise 3: Improve a regression model with AI features](#exercise-2-train-a-regression-model-with-traditional-features-1)
 - [Challenge: Mission control](#challenge-mission-control)
-- [Bonus Exercise 4: Use a trained ML model to improve AI (Dag-as-a-tool)](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
-- [Bonus Exercise 5: Context engineering to improve AI](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
-- [Bonus Exercise 6: Self-improving Agent with Decision traces](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
+- [Bonus Exercise 1: Inference](#bonus-exercise-1-run-batch-inference)
+- [Bonus Exercise 2: Using an ML model as an AI tool](#bonus-exercise-2-using-an-ml-model-as-an-ai-tool)
 
 ---
 
