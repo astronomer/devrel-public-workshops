@@ -163,7 +163,7 @@ This workshop comes with 2 React-based Airflow plugins. The first one is a dashb
 
 2. Go to the Dags overview page and search for the `setup` Dag. Run it by clicking the play button.
 
-    ![]
+    ![Find and run the setup Dag](doc/screenshot-run-setup-dag-search.png)
 
 3. In the popup, trigger a Single Run of the Dag by clicking the **Trigger** button. Wait for the run to finish (you'll see a green checkmark next to the timestamp of the "Latest Run"). If you are running this workshop in a cloud environment like the Astro IDE it might take a minute for the worker to spin up.
 
