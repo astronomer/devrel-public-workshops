@@ -28,7 +28,7 @@ The Astro CLI is a freely available tool created by Astronomer that helps you ru
 2. Clone this repository to your local machine 
 
     ```bash
-    git clone --single-branch --branch workshops/astrotrips/aimlops https://github.com/astronomer/devrel-public-workshops.git
+    git clone --single-branch --branch workshops/astrotrips/mlops-and-ai https://github.com/astronomer/devrel-public-workshops.git
     ```
 
 3. Copy the [`.env.dist`](.env.dist) file and rename the copy to `.env`. Fill in your AI credential (needed for exercise 3-6). Change the model if you are using a model provider other than OpenAI. If you later make any changes to the `.env` file you'll need to restart your environment with `astro dev restart` for the changes to take effect.
@@ -69,7 +69,7 @@ Create a [free trial of Astro](https://www.astronomer.io/lp/signup/?utm_source=c
  - **ACCOUNT**: `astronomer`
  - **REPOSITORY**: `devrel-public-workshops`
  - _Keep Astro Project Path empty_
- - **BRANCH**: `workshops/astrotrips/mlops-and-ai-context-engineering`
+ - **BRANCH**: `/workshops/astrotrips/mlops-and-ai`
  - **AUTHENTICATION TYPE**: `None (public repository)`
  - Click _Connect_. The IDE will import and open the project for you.
 
