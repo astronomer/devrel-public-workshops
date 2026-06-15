@@ -314,6 +314,8 @@ class SupportPortalPlugin(AirflowPlugin):
     external_views = [{
         "name": "AstroTrips",
         "href": "support-portal/dashboard",
+        "icon": "support-portal/static/portal-icon.svg",
+        "icon_dark_mode": "support-portal/static/portal-icon.svg",
         "destination": "nav",
         "url_route": "support-portal",
     }]

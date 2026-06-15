@@ -77,20 +77,23 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 > [!TIP]
 > Learn more about [Airflow connections](https://www.astronomer.io/docs/learn/connections).
 
-## Add the OpenAI API key
+## Add the LLM connection
 
-The AI exercises require an OpenAI API key (or any compatible provider). We will set this as an environment variable, to make it available for our Airflow instance.
+The AI exercises require an OpenAI API key (or any compatible provider). The LLM tasks in this workshop read the API key and the model name from an Airflow connection, so we create a second workspace-wide connection.
 
-1. In Astro, navigate to _Environment_ → _Environment Variables_ and click the _+ Environment Variable_ button.
-2. Enter the following details:
-    - **KEY**: `OPENAI_API_KEY`
-    - **VALUE**: your API key
-    - Mark it as **Secret**
+1. Still in _Environment_ → _Connections_, click _+ Connection_ again.
+2. Search for and select _Generic_, then enter the following details:
+
+    - **CONNECTION ID**: `pydanticai_default`
+    - **TYPE**: `pydanticai`
+    - **PASSWORD**: your API key
+    - **EXTRA**: `{"model": "openai:gpt-5-mini"}`
     - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
 
-    ![Add environment variable](doc/screenshot-add-env-var.png)
+3. Click _Create Connection_.
 
-3. Click _Create Environment Variable_.
+> [!NOTE]
+> Keeping the API key and model in a connection means your Dag code never contains credentials, and you can swap the model later without touching any code. The model uses the `provider:model` format. If you use an OpenAI-compatible provider, set its base URL in the **HOST** field.
 
 ## Start the test deployment and run the setup Dag
 
@@ -158,10 +161,10 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
 
 **What you will learn:**
 
-- Calling an LLM with `@task.llm` and getting structured output via a Pydantic model.
-- Sending images to a vision-capable LLM with `BinaryContent`.
-- Using `.expand_kwargs()` to dynamically map over multiple arguments.
-- Publishing an asset to trigger downstream Dags.
+- 💡 Calling an LLM with `@task.llm` and getting structured output via a Pydantic model.
+- 💡 Sending images to a vision-capable LLM with `BinaryContent`.
+- 💡 Using `.expand_kwargs()` to dynamically map over multiple arguments.
+- 💡 Publishing an asset to trigger downstream Dags.
 
 ## Create the Dag file
 
@@ -169,7 +172,6 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
 2. Add the following imports and constants:
 
     ```python
-    import airflow_ai_sdk as ai_sdk
     import os
     from pendulum import duration
     from airflow.configuration import AIRFLOW_HOME
@@ -178,6 +180,7 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
         SQLInsertRowsOperator,
     )
     from airflow.sdk import Asset, chain, dag, task
+    from pydantic import BaseModel
     from pydantic_ai import BinaryContent
     from typing import Literal
 
@@ -199,7 +202,7 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
     ```
 
 > [!NOTE]
-> This Dag has no `schedule` — it is triggered manually. The `default_args` add retry logic since DuckDB can throw temporary lock errors when multiple tasks write concurrently.
+> This Dag has no `schedule`, it is triggered manually. The `default_args` add retry logic since DuckDB can throw temporary lock errors when multiple tasks write concurrently.
 
 > [!NOTE]
 > `pass` is a null operation that acts as a placeholder when a statement is syntactically required but no action needs to run. We use it as a temporary placeholder for Dag or task implementations, which we will complete step by step during the workshop exercises.
@@ -211,14 +214,14 @@ The LLM should return structured data, not free text.
 1. Define a Pydantic model **above** the `@dag` function that describes the expected output:
 
     ```python
-    class ReviewAnalysis(ai_sdk.BaseModel):
+    class ReviewAnalysis(BaseModel):
         sentiment: Literal["positive", "negative", "neutral"]
         category: Literal["safety", "service", "value", "experience"]
         summary: str
         image_description: str | None = None
     ```
 
-The `airflow-ai-sdk` provides its own `BaseModel` that auto-serializes results for XCom. Using `Literal` types constrains the LLM to only return valid values.
+This is a regular Pydantic `BaseModel`. The LLM task validates the response against it and serializes the result as a dictionary for XCom, so downstream tasks can pick out individual fields. Using `Literal` types constrains the LLM to only return valid values. Define the class at module scope, not nested inside the Dag function.
 
 ## Add the query and formatting tasks
 
@@ -280,7 +283,7 @@ This is the core of the exercise. The `@task.llm` decorator turns a regular Pyth
 
     ```python
     @task.llm(
-        model="gpt-5-mini",
+        llm_conn_id="pydanticai_default",
         system_prompt=(
             "You are a customer review analyst for AstroTrips, an interplanetary travel company. "
             "Analyze the given trip review and extract:\n"
@@ -306,9 +309,9 @@ This is the core of the exercise. The `@task.llm` decorator turns a regular Pyth
         return review_text
     ```
 
-    The function body is a **translation function**, it returns the prompt that gets sent to the LLM. When an image is present, it returns a list with both the text and the image data. The LLM receives both and can describe what it sees. Take note how the system prompt is defined as an argument of the decorator.
+    The function body is a **translation function**, it returns the prompt that gets sent to the LLM. When an image is present, it returns a list with both the text and the image data. The LLM receives both and can describe what it sees. Take note how the system prompt is defined as an argument of the decorator, and how `llm_conn_id` points to the connection you created in Exercise 0. Which model is used is part of the connection, not the code.
 
-2. Next, we analyze each review individually, along with its image (_if present_). The number of task instances is determined at runtime. To create parallel task instances at runtime, we use a feature called dynamic task mapping. We do this by calling `expand` on a task, or in this case, `expand_kwargs` to pass multiple arguments:
+2. Next, we analyze each review individually, along with its image (_if present_). **The number of task instances is determined at runtime**. To create parallel task instances at runtime, we use a feature called **dynamic task mapping**. We do this by calling `expand` on a task, or in this case, `expand_kwargs` to pass multiple arguments:
 
     ```python
     _analyses = analyze_review.expand_kwargs(_formatted_context)
@@ -321,13 +324,13 @@ This is the core of the exercise. The `@task.llm` decorator turns a regular Pyth
 > We can limit parallelism using `max_active_tis_per_dagrun`. In this case, we process each review one at a time to keep the load on our test deployment as low as possible.
 
 > [!TIP]
-> Learn more about the [airflow-ai-sdk](https://github.com/astronomer/airflow-ai-sdk) and [dynamic task mapping](https://www.astronomer.io/docs/learn/dynamic-tasks).
+> Learn more about the [common AI provider](https://airflow.apache.org/docs/apache-airflow-providers-common-ai/stable/) and [dynamic task mapping](https://www.astronomer.io/docs/learn/dynamic-tasks).
 
 ## Add the save task
 
 The LLM results need to be written back to the database. We'll collect all analyses together with the original review data and insert them using a delete-then-insert pattern.
 
-1. Add a task to combine the original query data with the LLM output:
+1. Add a task to combine the original query data with the LLM output. Each `analysis` arrives as a dictionary with the `ReviewAnalysis` fields:
 
     ```python
     @task
@@ -397,9 +400,9 @@ In this exercise, you will build a Dag that routes each analyzed review to the r
 
 **What you will learn:**
 
-- Using `@task.llm_branch` for LLM-powered Dag branching.
-- Combining branching with `@task_group` and `.expand()` for per-item routing.
-- Asset-aware scheduling to trigger this Dag automatically.
+- 💡 Using `@task.llm_branch` for LLM-powered Dag branching.
+- 💡 Combining branching with `@task_group` and `.expand()` for per-item routing.
+- 💡 Asset-aware scheduling to trigger this Dag automatically.
 
 ## Create the Dag file
 
@@ -422,12 +425,16 @@ In this exercise, you will build a Dag that routes each analyzed review to the r
         tags=["astrotrips", "ai", "reviews"],
         template_searchpath=f"{AIRFLOW_HOME}/include/sql",
         default_args={"retries": 3, "retry_delay": pendulum.duration(seconds=10)},
+        max_active_tasks=1,
     )
     def route_reviews():
         pass
 
     route_reviews()
     ```
+
+> [!NOTE]
+> This Dag updates the database from many parallel branches, but DuckDB only allows one writer at a time. Setting `max_active_tasks=1` runs one task at a time within a Dag run, which avoids write conflicts entirely.
 
 > [!TIP]
 > Learn more about [asset-aware scheduling](https://www.astronomer.io/docs/learn/airflow-datasets).
@@ -474,7 +481,7 @@ Each review needs to be routed individually. We use a `@task_group` with `.expan
 1. As a first step, define the task group which receives a single review as an argument, together with a task to prepare the context we will later pass to the LLM branching task:
 
     ```python
-    @task_group(default_args={"max_active_tis_per_dagrun": 1})
+    @task_group
     def handle_review(review_data):
 
         @task
@@ -493,7 +500,7 @@ Each review needs to be routed individually. We use a `@task_group` with `.expan
 
     ```python
         @task.llm_branch(
-            model="gpt-5-mini",
+            llm_conn_id="pydanticai_default",
             system_prompt=(
                 "You are a support ticket router for AstroTrips, an interplanetary travel company. "
                 "Based on the customer review below, decide which team should handle it.\n\n"
@@ -522,7 +529,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 
 **Ensure to add the code of all three steps within the task group**!
 
-1. Add a helper task and the four routing handlers inside the task group. Each one uses the **`parameters`** keyword with DuckDB's `$variable` syntax for safe parameter binding:
+1. Add a helper task inside the task group, to extract the id of the review the task group is processing. We will need this id in the next step.
 
     ```python
         @task
@@ -532,7 +539,9 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
         _id = extract_id(review_data)
     ```
 
-2. Now create the four `SQLExecuteQueryOperator` tasks. One for each routing destination. **Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, following the same pattern, changing only the `routed_to` value:
+2. Now create the four routing handlers, in form of `SQLExecuteQueryOperator` tasks,  inside the task group. One for each routing destination. Each one uses the **`parameters`** keyword with DuckDB's `$variable` syntax for safe parameter binding.
+
+**Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, following the same pattern, changing only the `routed_to` value:
 
     ```python
         _route_refund = SQLExecuteQueryOperator(
@@ -562,7 +571,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 
 ## Wire up the Dag
 
-**Outside the task group**, expand it over the review list, add a completion task that emits an asset, and wire everything together.
+**Outside the task group** (_pay close attention to indentation_), expand it over the review list, add a completion task that emits an asset, and wire everything together.
 
 1. Add the completion task and wire up the Dag:
 
@@ -614,9 +623,9 @@ In this exercise, you will build a Dag that converts review text into vector emb
 
 **What you will learn:**
 
-- Using `@task.embed` for text embeddings with sentence-transformers.
-- Dynamic mapping with `.expand()` for parallel embedding.
-- Computing cosine similarity between vectors.
+- 💡 Creating text embeddings with the `LlamaIndexEmbeddingOperator`.
+- 💡 Persisting a vector index and loading it in a downstream task.
+- 💡 Computing cosine similarity between vectors.
 
 ## Create the Dag file
 
@@ -625,6 +634,9 @@ In this exercise, you will build a Dag that converts review text into vector emb
     ```python
     import pendulum
     from airflow.configuration import AIRFLOW_HOME
+    from airflow.providers.common.ai.operators.llamaindex_embedding import (
+        LlamaIndexEmbeddingOperator,
+    )
     from airflow.providers.common.sql.operators.sql import (
         SQLExecuteQueryOperator,
         SQLInsertRowsOperator,
@@ -651,7 +663,7 @@ In this exercise, you will build a Dag that converts review text into vector emb
 
 ## Add the embedding tasks
 
-1. Inside the `embed_reviews()` Dag function, fetch all non-pending reviews and extract the texts and IDs:
+1. Inside the `embed_reviews()` Dag function, fetch all non-pending reviews and format them as documents. Each document carries the `review_id` as metadata, so we can map the resulting vectors back to their reviews later:
 
     ```python
     _reviews = SQLExecuteQueryOperator(
@@ -661,46 +673,46 @@ In this exercise, you will build a Dag that converts review text into vector emb
     )
 
     @task
-    def extract_texts(query_result):
-        return [row[1] for row in query_result]
+    def format_documents(query_result):
+        return [
+            {"text": row[1], "metadata": {"review_id": row[0]}}
+            for row in query_result
+        ]
 
-    @task
-    def extract_ids(query_result):
-        return [row[0] for row in query_result]
-
-    _texts = extract_texts(_reviews.output)
-    _ids = extract_ids(_reviews.output)
+    _documents = format_documents(_reviews.output)
     ```
 
-2. Add the embedding task. The `@task.embed` decorator handles calling the embedding model for you:
+2. Add the embedding operator. The `LlamaIndexEmbeddingOperator` takes the full document list, turns each text into a vector, and persists the resulting vector index to disk:
 
     ```python
-    @task.embed(
-        model_name="all-MiniLM-L6-v2",
-        max_active_tis_per_dagrun=1,
+    _embeddings = LlamaIndexEmbeddingOperator(
+        task_id="create_embeddings",
+        documents=_documents,
+        llm_conn_id="pydanticai_default",
+        embed_model="text-embedding-3-small",
+        persist_dir=f"{AIRFLOW_HOME}/include/review_index",
     )
-    def embed_review(review_text: str) -> str:
-        return review_text
-
-    _embeddings = embed_review.expand(review_text=_texts)
     ```
 
 > [!NOTE]
-> The `max_active_tis_per_dagrun=1` setting limits concurrent embedding tasks to avoid rate-limiting. The model `all-MiniLM-L6-v2` runs locally via sentence-transformers, no API key needed for embeddings.
+> The operator reuses the `pydanticai_default` connection from Exercise 0, it only needs the API key stored there. The embedding model is set on the operator. Behind the scenes, the operator splits long documents into chunks before embedding. Our reviews are short, so each review stays one chunk.
 
-## Combine and save
+## Save the embeddings
 
-1. Add a task to pair each review ID with its embedding:
+1. Add a task that loads the persisted index and maps each vector back to its review via the metadata. The persisted index could also be used directly for retrieval, for example with the `LlamaIndexRetrievalOperator`, but our support portal and the agent in the next exercise read from the database:
 
     ```python
     @task
-    def prepare_rows(review_ids, embeddings):
-        rows = []
-        for review_id, embedding in zip(review_ids, embeddings):
-            rows.append((review_id, embedding))
-        return rows
+    def prepare_rows(result):
+        from llama_index.core import StorageContext
 
-    _prepared_rows = prepare_rows(_ids, _embeddings)
+        ctx = StorageContext.from_defaults(persist_dir=result["persist_dir"])
+        return [
+            (ctx.docstore.get_node(node_id).metadata["review_id"], vector)
+            for node_id, vector in ctx.vector_store.data.embedding_dict.items()
+        ]
+
+    _prepared_rows = prepare_rows(_embeddings.output)
     ```
 
 2. Save to the database:
@@ -798,11 +810,11 @@ In this final exercise, you will build a Dag where an AI agent drafts personaliz
 
 **What you will learn:**
 
-- Building an AI agent with `@task.agent` and custom tools.
-- Conditional asset-aware scheduling.
-- Using human-in-the-loop for interactive pipelines.
-- Using `HITLBranchOperator` for approve/reject branching.
-- Combining agents, tools, HITL, and SQL operators in a single Dag.
+- 💡 Building an AI agent with `@task.agent` and custom tools.
+- 💡 Conditional asset-aware scheduling.
+- 💡 Refining agent output interactively with the built-in HITL review loop.
+- 💡 Using `HITLBranchOperator` for approve/reject branching.
+- 💡 Combining agents, tools, HITL, and SQL operators in a single Dag.
 
 ## Review the agent tools
 
@@ -813,7 +825,7 @@ Open `include/agent_tools.py` and review the two pre-built tools. No need to cha
 - **`lookup_booking(booking_id)`**: Queries the bookings, customers, routes, and payments tables to return a formatted summary of a customer's trip (destination, dates, fare, passengers).
 - **`find_similar_reviews(review_id)`**: Fetches the review's embedding from `review_embeddings`, computes cosine similarity against all other reviews, and returns the top 3 most similar ones with their text, sentiment, and category.
 
-Both tools connect to DuckDB in read-only mode and get the database path from the Airflow connection (`duckdb_astrotrips`). This is necessary because agent tools run inside the [Pydantic AI](https://ai.pydantic.dev/) (the basis for the Airflow AI SDK) loop, where no Airflow task context is available.
+Both tools connect to DuckDB in read-only mode and get the database path from the Airflow connection (`duckdb_astrotrips`). This is necessary because agent tools run inside the [Pydantic AI](https://ai.pydantic.dev/) (the foundation of Airflow's common AI provider) loop, where no Airflow task context is available.
 
 > [!NOTE]
 > The `find_similar_reviews` tool reuses the same cosine similarity approach you saw in Exercise 3's `compute_similarity` task. The embeddings stored by the `embed_reviews` Dag are now available for the agent to query at response time.
@@ -828,7 +840,7 @@ Both tools connect to DuckDB in read-only mode and get the database path from th
     from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
     from airflow.providers.standard.operators.hitl import HITLBranchOperator
     from airflow.sdk import Asset, chain, dag, task, task_group
-    from pydantic_ai import Agent
+    from pydantic_ai.toolsets import FunctionToolset
 
     from include.agent_tools import find_similar_reviews, lookup_booking
 
@@ -908,11 +920,11 @@ Both tools connect to DuckDB in read-only mode and get the database path from th
 
 ## Add the agent and save tasks
 
-1. **Inside the task group**, define the AI agent. The `@task.agent` decorator takes a `pydantic_ai.Agent` instance with the tools you've seen before:
+1. **Inside the task group**, define the AI agent. Like `@task.llm`, the `@task.agent` decorator uses the connection from Exercise 0. The tools you reviewed earlier are passed as a `FunctionToolset`:
 
     ```python
-        @task.agent(agent=Agent(
-            "gpt-5-mini",
+        @task.agent(
+            llm_conn_id="pydanticai_default",
             system_prompt=(
                 "You are a customer service agent for AstroTrips, an interplanetary travel company. "
                 "Your job is to draft a professional, empathetic response to a customer's trip review.\n\n"
@@ -927,11 +939,18 @@ Both tools connect to DuckDB in read-only mode and get the database path from th
                 "- Keep the response under 200 words.\n"
                 "- Sign off as 'AstroTrips Customer Experience Team'."
             ),
-            tools=[lookup_booking, find_similar_reviews],
-        ))
+            toolsets=[FunctionToolset(tools=[lookup_booking, find_similar_reviews])],
+            enable_hitl_review=True,
+        )
         def draft_response(prompt: str) -> str:
             return prompt
     ```
+
+> [!NOTE]
+> Every tool call is logged automatically, check the task logs later to watch the agent reason and call your tools.
+
+> [!IMPORTANT]
+> The `enable_hitl_review=True` flag starts an interactive review loop after the first draft, meaning the `draft_response` task **waits for you**. When running the pipeline, open the running task instance and select the **HITL Review** tab to chat with the agent: request changes and it regenerates the draft, or approve to let the Dag continue. The task waits until you approve, so do not forget this step when running the Dag later.
 
 2. **Inside the task group**, add the extract and save tasks:
 
@@ -1021,17 +1040,24 @@ The `HITLBranchOperator` pauses the workflow and presents the drafted response f
 
 1. Sync your changes. Re-run the `setup` Dag to reset the database, then trigger `analyze_reviews`.
 2. The full pipeline cascades: analyze → route → embed → respond, all based on asset-aware scheduling.
-3. The `respond_reviews` Dag pauses at the HITL step for **one** review. Navigate to _Browse_ → _Required Actions_.
-4. A required action will appear with the AI-drafted response.
+3. The `respond_reviews` Dag pauses twice for human input, both times for **one** review. First, the `draft_response` task waits for you to review the draft. Open the running task instance of `respond_reviews` and select the **HITL Review** button.
 
-![Required actions list](doc/screenshot-required-actions.png)
+    ![Embedded HITL Review](doc/screenshot-hitl-review-link.png)
 
-![Human-in-the-loop form](doc/screenshot-hitl-form.png)
+4. Read the draft and request a change (for example: _make it shorter and mention the destination_). The agent regenerates the response based on your feedback. Approve once you are happy with it.
 
-5. Select **Approve** or **Reject**. Once the Dag completes, trigger `respond_reviews` again manually to process the next review. Repeat a few times. Try approving some and rejecting others to see how the portal reflects different outcomes.
-6. Open the **AstroTrips Support Portal**! Approved reviews show a green status box, rejected reviews show a red one.
+    ![Request a change](doc/screenshot-hitl-review-chat.png)
 
-![Final review state](doc/screenshot-final-state.png)
+5. Next, the Dag pauses at the approval branch. Navigate to _Browse_ → _Required Actions_. A required action will appear with the final response.
+
+    ![Required actions list](doc/screenshot-required-actions.png)
+
+    ![Human-in-the-loop form](doc/screenshot-hitl-form.png)
+
+6. Select **Approve** or **Reject**. Once the Dag completes, trigger `respond_reviews` again manually to process the next review. Repeat a few times. Try approving some and rejecting others to see how the portal reflects different outcomes.
+7. Open the **AstroTrips Support Portal**! Approved reviews show a green status box, rejected reviews show a red one.
+
+    ![Final review state](doc/screenshot-final-state.png)
 
 ---
 

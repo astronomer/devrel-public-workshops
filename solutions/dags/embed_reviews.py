@@ -1,5 +1,8 @@
 from pendulum import duration
 from airflow.configuration import AIRFLOW_HOME
+from airflow.providers.common.ai.operators.llamaindex_embedding import (
+    LlamaIndexEmbeddingOperator,
+)
 from airflow.providers.common.sql.operators.sql import (
     SQLExecuteQueryOperator,
     SQLInsertRowsOperator,
@@ -24,34 +27,34 @@ def embed_reviews():
     )
 
     @task
-    def extract_texts(query_result):
-        return [row[1] for row in query_result]
+    def format_documents(query_result):
+        return [
+            {"text": row[1], "metadata": {"review_id": row[0]}}
+            for row in query_result
+        ]
 
-    @task
-    def extract_ids(query_result):
-        return [row[0] for row in query_result]
+    _documents = format_documents(_reviews.output)
 
-    @task.embed(
-        model_name="all-MiniLM-L6-v2",
-        max_active_tis_per_dagrun=1,
+    _embeddings = LlamaIndexEmbeddingOperator(
+        task_id="create_embeddings",
+        documents=_documents,
+        llm_conn_id="pydanticai_default",
+        embed_model="text-embedding-3-small",
+        persist_dir=f"{AIRFLOW_HOME}/include/review_index",
     )
-    def embed_review(review_text: str) -> str:
-        return review_text
-
-    _texts = extract_texts(_reviews.output)
-    _ids = extract_ids(_reviews.output)
-
-    _embeddings = embed_review.expand(review_text=_texts)
 
     @task
-    def prepare_rows(review_ids, embeddings):
-        """Combine review IDs with their embedding vectors into insertable rows."""
-        rows = []
-        for review_id, embedding in zip(review_ids, embeddings):
-            rows.append((review_id, embedding))
-        return rows
+    def prepare_rows(result):
+        """Load the persisted index and map each vector back to its review."""
+        from llama_index.core import StorageContext
 
-    _prepared_rows = prepare_rows(_ids, _embeddings)
+        ctx = StorageContext.from_defaults(persist_dir=result["persist_dir"])
+        return [
+            (ctx.docstore.get_node(node_id).metadata["review_id"], vector)
+            for node_id, vector in ctx.vector_store.data.embedding_dict.items()
+        ]
+
+    _prepared_rows = prepare_rows(_embeddings.output)
 
     _save_embeddings = SQLInsertRowsOperator(
         task_id="save_embeddings",

@@ -1,16 +1,16 @@
-![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.1-blue?style=for-the-badge)
+![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.2-blue?style=for-the-badge)
 
 # Apache Airflow - AI Workshop
 
-Welcome to the Apache Airflow AI workshop! You will build an AI-powered customer review intelligence pipeline using the [airflow-ai-sdk](https://github.com/astronomer/airflow-ai-sdk) and Apache Airflow 3.
+Welcome to the Apache Airflow AI workshop! You will build an AI-powered customer review intelligence pipeline using Airflow's LLM task decorators from the [common AI provider](https://airflow.apache.org/docs/apache-airflow-providers-common-ai/stable/) and Apache Airflow 3.
 
 **What you will learn:**
 
 - Using LLMs for structured data extraction with `@task.llm`.
 - LLM-powered branching with `@task.llm_branch` inside dynamic task groups.
-- Generating text embeddings and computing similarity with `@task.embed`.
+- Generating text embeddings and computing similarity with the `LlamaIndexEmbeddingOperator`.
 - Building multi-step AI agents with tools using `@task.agent`.
-- Human-in-the-loop patterns for reviewing AI-generated content.
+- Human-in-the-loop patterns for reviewing and refining AI-generated content.
 - Asset-aware scheduling for chaining Dags together.
 
 > [!NOTE]
@@ -67,11 +67,11 @@ AIRFLOW_CONN_DUCKDB_ASTROTRIPS='{
 > [!CAUTION]
 > This optional step can be skipped for regular workshop participation. It is intended for advanced exploration after the workshop.
 
-Workshops can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env` and add your `OPENAI_API_KEY`, then adjust the configuration values if needed. You can start the project with `astro dev start`. However, these workshops are primarily designed for use with the Astro IDE.
+Workshops can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env` and add your OpenAI API key to the `AIRFLOW_CONN_PYDANTICAI_DEFAULT` connection, then adjust the configuration values if needed. You can start the project with `astro dev start`. However, these workshops are primarily designed for use with the Astro IDE.
 
 ## OpenAI API key
 
-This workshop uses OpenAI-compatible models for LLM tasks. You will need an API key from [OpenAI](https://platform.openai.com/api-keys) or any compatible provider. The key is configured as an environment variable (`OPENAI_API_KEY`) during the setup exercise. Embeddings run locally via sentence-transformers and do not require an API key.
+This workshop uses OpenAI-compatible models for LLM tasks and embeddings. You will need an API key from [OpenAI](https://platform.openai.com/api-keys) or any compatible provider. The key is stored in an Airflow connection during the setup exercise, together with the model to use, so no credentials or model names appear in your Dag code.
 
 ## Get started
 

@@ -1,3 +1,9 @@
 duckdb_astrotrips:
   conn_type: duckdb
   host: include/astrotrips.duckdb
+
+pydanticai_default:
+  conn_type: pydanticai
+  password: your-api-key-here
+  extra:
+    model: "openai:gpt-5-mini"

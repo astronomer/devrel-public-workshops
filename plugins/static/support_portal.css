@@ -1,19 +1,25 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
-    background: #fff;
+    background: #fafbfc;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #111827;
     border: 0;
 }
 
-.topbar { padding: 20px 28px 0; }
+body::before {
+    content: ""; display: block; height: 3px;
+    background: linear-gradient(90deg, #FFB32D, #872DED, #13BDD7, #2676FF);
+}
+
+.topbar { padding: 20px 28px 0; display: flex; align-items: center; gap: 12px; }
+.topbar img { width: 30px; height: 30px; }
 .topbar h1 { font-size: 18px; font-weight: 700; }
 .topbar p { font-size: 12px; color: #9ca3af; margin-top: 1px; }
 
 .stats { display: flex; gap: 28px; padding: 18px 28px 0; }
 .stat { text-align: center; }
-.stat-num { font-size: 24px; font-weight: 700; }
+.stat-num { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-label {
     font-size: 11px; color: #9ca3af; margin-top: 1px;
     text-transform: uppercase; letter-spacing: .5px;
@@ -21,7 +27,10 @@ html, body {
 
 .filters {
     display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
-    padding: 16px 28px; border-bottom: 1px solid #f0f0f0;
+    padding: 16px 28px; border-bottom: 1px solid #eef0f3;
+    background: rgba(250, 251, 252, .92);
+    backdrop-filter: blur(6px);
+    position: sticky; top: 0; z-index: 5;
 }
 .fg { display: flex; align-items: center; gap: 5px; }
 .fl {
@@ -41,8 +50,14 @@ html, body {
 
 .cards { max-width: 920px; margin: 16px auto; padding: 0 28px 20px; }
 .card {
-    background: #fff; border: 1px solid #eee;
-    border-radius: 8px; padding: 20px; margin-bottom: 12px;
+    background: #fff; border: 1px solid #ebedf0;
+    border-radius: 12px; padding: 20px; margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, .04);
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+.card:hover {
+    box-shadow: 0 6px 18px rgba(17, 24, 39, .08);
+    transform: translateY(-1px);
 }
 
 .meta {
