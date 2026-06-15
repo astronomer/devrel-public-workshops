@@ -90,8 +90,6 @@ The AI exercises require an OpenAI API key (or any compatible provider). The LLM
     - **EXTRA**: `{"model": "openai:gpt-5-mini"}`
     - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
 
-    <!-- TODO: screenshot-add-llm-connection.png -->
-
 3. Click _Create Connection_.
 
 > [!NOTE]
@@ -163,10 +161,10 @@ In this exercise, you will build a Dag that uses an LLM to analyze customer revi
 
 **What you will learn:**
 
-- Calling an LLM with `@task.llm` and getting structured output via a Pydantic model.
-- Sending images to a vision-capable LLM with `BinaryContent`.
-- Using `.expand_kwargs()` to dynamically map over multiple arguments.
-- Publishing an asset to trigger downstream Dags.
+- 💡 Calling an LLM with `@task.llm` and getting structured output via a Pydantic model.
+- 💡 Sending images to a vision-capable LLM with `BinaryContent`.
+- 💡 Using `.expand_kwargs()` to dynamically map over multiple arguments.
+- 💡 Publishing an asset to trigger downstream Dags.
 
 ## Create the Dag file
 
@@ -313,7 +311,7 @@ This is the core of the exercise. The `@task.llm` decorator turns a regular Pyth
 
     The function body is a **translation function**, it returns the prompt that gets sent to the LLM. When an image is present, it returns a list with both the text and the image data. The LLM receives both and can describe what it sees. Take note how the system prompt is defined as an argument of the decorator, and how `llm_conn_id` points to the connection you created in Exercise 0. Which model is used is part of the connection, not the code.
 
-2. Next, we analyze each review individually, along with its image (_if present_). The number of task instances is determined at runtime. To create parallel task instances at runtime, we use a feature called dynamic task mapping. We do this by calling `expand` on a task, or in this case, `expand_kwargs` to pass multiple arguments:
+2. Next, we analyze each review individually, along with its image (_if present_). **The number of task instances is determined at runtime**. To create parallel task instances at runtime, we use a feature called **dynamic task mapping**. We do this by calling `expand` on a task, or in this case, `expand_kwargs` to pass multiple arguments:
 
     ```python
     _analyses = analyze_review.expand_kwargs(_formatted_context)
@@ -402,9 +400,9 @@ In this exercise, you will build a Dag that routes each analyzed review to the r
 
 **What you will learn:**
 
-- Using `@task.llm_branch` for LLM-powered Dag branching.
-- Combining branching with `@task_group` and `.expand()` for per-item routing.
-- Asset-aware scheduling to trigger this Dag automatically.
+- 💡 Using `@task.llm_branch` for LLM-powered Dag branching.
+- 💡 Combining branching with `@task_group` and `.expand()` for per-item routing.
+- 💡 Asset-aware scheduling to trigger this Dag automatically.
 
 ## Create the Dag file
 
@@ -531,7 +529,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 
 **Ensure to add the code of all three steps within the task group**!
 
-1. Add a helper task and the four routing handlers inside the task group. Each one uses the **`parameters`** keyword with DuckDB's `$variable` syntax for safe parameter binding:
+1. Add a helper task inside the task group, to extract the id of the review the task group is processing. We will need this id in the next step.
 
     ```python
         @task
@@ -541,7 +539,9 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
         _id = extract_id(review_data)
     ```
 
-2. Now create the four `SQLExecuteQueryOperator` tasks. One for each routing destination. **Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, following the same pattern, changing only the `routed_to` value:
+2. Now create the four routing handlers, in form of `SQLExecuteQueryOperator` tasks,  inside the task group. One for each routing destination. Each one uses the **`parameters`** keyword with DuckDB's `$variable` syntax for safe parameter binding.
+
+**Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, following the same pattern, changing only the `routed_to` value:
 
     ```python
         _route_refund = SQLExecuteQueryOperator(
@@ -571,7 +571,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 
 ## Wire up the Dag
 
-**Outside the task group**, expand it over the review list, add a completion task that emits an asset, and wire everything together.
+**Outside the task group** (_pay close attention to indentation_), expand it over the review list, add a completion task that emits an asset, and wire everything together.
 
 1. Add the completion task and wire up the Dag:
 
@@ -623,9 +623,9 @@ In this exercise, you will build a Dag that converts review text into vector emb
 
 **What you will learn:**
 
-- Creating text embeddings with the `LlamaIndexEmbeddingOperator`.
-- Persisting a vector index and loading it in a downstream task.
-- Computing cosine similarity between vectors.
+- 💡 Creating text embeddings with the `LlamaIndexEmbeddingOperator`.
+- 💡 Persisting a vector index and loading it in a downstream task.
+- 💡 Computing cosine similarity between vectors.
 
 ## Create the Dag file
 
@@ -810,11 +810,11 @@ In this final exercise, you will build a Dag where an AI agent drafts personaliz
 
 **What you will learn:**
 
-- Building an AI agent with `@task.agent` and custom tools.
-- Conditional asset-aware scheduling.
-- Refining agent output interactively with the built-in HITL review loop.
-- Using `HITLBranchOperator` for approve/reject branching.
-- Combining agents, tools, HITL, and SQL operators in a single Dag.
+- 💡 Building an AI agent with `@task.agent` and custom tools.
+- 💡 Conditional asset-aware scheduling.
+- 💡 Refining agent output interactively with the built-in HITL review loop.
+- 💡 Using `HITLBranchOperator` for approve/reject branching.
+- 💡 Combining agents, tools, HITL, and SQL operators in a single Dag.
 
 ## Review the agent tools
 
@@ -950,7 +950,7 @@ Both tools connect to DuckDB in read-only mode and get the database path from th
 > Every tool call is logged automatically, check the task logs later to watch the agent reason and call your tools.
 
 > [!IMPORTANT]
-> The `enable_hitl_review=True` flag starts an interactive review loop after the first draft, meaning the `draft_response` task **waits for you**. Open the running task instance and select the **HITL Review** tab to chat with the agent: request changes and it regenerates the draft, or approve to let the Dag continue. The task waits until you approve, so do not forget this step when running the Dag later.
+> The `enable_hitl_review=True` flag starts an interactive review loop after the first draft, meaning the `draft_response` task **waits for you**. When running the pipeline, open the running task instance and select the **HITL Review** tab to chat with the agent: request changes and it regenerates the draft, or approve to let the Dag continue. The task waits until you approve, so do not forget this step when running the Dag later.
 
 2. **Inside the task group**, add the extract and save tasks:
 
@@ -1042,22 +1042,22 @@ The `HITLBranchOperator` pauses the workflow and presents the drafted response f
 2. The full pipeline cascades: analyze → route → embed → respond, all based on asset-aware scheduling.
 3. The `respond_reviews` Dag pauses twice for human input, both times for **one** review. First, the `draft_response` task waits for you to review the draft. Open the running task instance of `respond_reviews` and select the **HITL Review** button.
 
-    <!-- TODO: screenshot-hitl-review-link.png -->
+    ![Embedded HITL Review](doc/screenshot-hitl-review-link.png)
 
 4. Read the draft and request a change (for example: _make it shorter and mention the destination_). The agent regenerates the response based on your feedback. Approve once you are happy with it.
 
-    <!-- TODO: screenshot-hitl-review-chat.png -->
+    ![Request a change](doc/screenshot-hitl-review-chat.png)
 
 5. Next, the Dag pauses at the approval branch. Navigate to _Browse_ → _Required Actions_. A required action will appear with the final response.
 
-![Required actions list](doc/screenshot-required-actions.png)
+    ![Required actions list](doc/screenshot-required-actions.png)
 
-![Human-in-the-loop form](doc/screenshot-hitl-form.png)
+    ![Human-in-the-loop form](doc/screenshot-hitl-form.png)
 
 6. Select **Approve** or **Reject**. Once the Dag completes, trigger `respond_reviews` again manually to process the next review. Repeat a few times. Try approving some and rejecting others to see how the portal reflects different outcomes.
 7. Open the **AstroTrips Support Portal**! Approved reviews show a green status box, rejected reviews show a red one.
 
-![Final review state](doc/screenshot-final-state.png)
+    ![Final review state](doc/screenshot-final-state.png)
 
 ---
 
