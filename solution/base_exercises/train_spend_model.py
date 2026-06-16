@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 from airflow.sdk import chain, dag, task
 
 from include.aimlops.assets import MODEL_REGISTERED, PLUGIN_SYNC
@@ -15,12 +13,8 @@ _LR_L1_RATIO = [0.2, 0.5]
 
 
 @dag(
-    start_date=datetime(2026, 1, 1),
-    schedule=None,
     tags=["exercise 2"],
     max_active_tasks=1,  # local db only allows one concurrent write
-    default_args={"retries": 3, "retry_delay": timedelta(seconds=10)},
-    doc_md=__doc__,
 )
 def train_spend_model():
 
@@ -54,11 +48,13 @@ def train_spend_model():
             "feature_set": "ai" if use_ai else "deterministic",
         }
 
-    @task(max_active_tis_per_dagrun=1)  # local db only allows one concurrent write
+    @task(max_active_tis_per_dagrun=1, map_index_template="{{ custom_map_index }}")
     def train_random_forest(n_estimators: int, max_depth: int, training_set: dict) -> dict:
         import numpy as np
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.model_selection import train_test_split
+
+        from airflow.sdk import get_current_context
 
         from include.aimlops.training import evaluate_regression
         from include.mlops_tracking import MlopsTracker
@@ -108,6 +104,9 @@ def train_spend_model():
         model_version = tracker.log_model(run_id, model_name, "RandomForestRegressor", model)
         tracker.end_run(run_id)
 
+        context = get_current_context()
+        context["custom_map_index"] = f"Trees: {n_estimators} | Depth: {max_depth} | RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}"
+
         return {
             "run_id": run_id,
             "model_name": model_name,
@@ -126,13 +125,15 @@ def train_spend_model():
             "y_pred": preds.tolist(),
         }
 
-    @task(max_active_tis_per_dagrun=1)
+    @task(max_active_tis_per_dagrun=1, map_index_template="{{ custom_map_index }}")
     def train_linear(alpha: float, l1_ratio: float, training_set: dict) -> dict:
         import numpy as np
         from sklearn.linear_model import ElasticNet
         from sklearn.model_selection import train_test_split
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import StandardScaler
+
+        from airflow.sdk import get_current_context
 
         from include.aimlops.training import evaluate_regression
         from include.mlops_tracking import MlopsTracker
@@ -185,6 +186,9 @@ def train_spend_model():
         tracker.log_metrics(run_id, metrics)
         model_version = tracker.log_model(run_id, model_name, "ElasticNet", model)
         tracker.end_run(run_id)
+
+        context = get_current_context()
+        context["custom_map_index"] = f"Alpha: {alpha} | L1: {l1_ratio} | RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}"
 
         return {
             "run_id": run_id,

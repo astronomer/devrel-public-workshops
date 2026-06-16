@@ -1,5 +1,4 @@
 from airflow.sdk import chain, dag, task
-from datetime import datetime
 from include.aimlops.assets import DETERMINISTIC_FEATURES_READY
 
 _SOURCE_TABLES = [

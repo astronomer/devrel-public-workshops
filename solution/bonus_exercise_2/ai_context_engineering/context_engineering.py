@@ -35,8 +35,12 @@ def context_engineering():
     def list_source_files() -> list[str]:
         return sorted(str(path) for path in _SEED_DIR.glob("*.md"))
 
-    @task
+    @task(map_index_template="{{ custom_map_index }}")
     def chunk_file(path: str) -> list[dict]:
+        from airflow.sdk import get_current_context
+
+        get_current_context()["custom_map_index"] = f"Chunk Title: {Path(path).name}"
+
         raw = Path(path).read_text(encoding="utf-8")
         frontmatter, chunks = chunking.chunk_markdown(raw)
         relpath = os.path.relpath(path, AIRFLOW_HOME)
@@ -56,12 +60,18 @@ def context_engineering():
     def flatten_chunks(chunked: list[list[dict]]) -> list[dict]:
         return [chunk for file_chunks in chunked for chunk in file_chunks]
 
-    @task
+    @task(map_index_template="{{ custom_map_index }}")
     def deterministic_meta(chunk: dict) -> dict:
+        from airflow.sdk import get_current_context
+
         source_uri = context_units.build_source_uri(
             chunk["relpath"], chunk["heading_path"], chunk["ordinal"]
         )
         chunk_id = context_units.chunk_id_for(source_uri)
+
+        context = get_current_context()
+        context["custom_map_index"] = f"Chunk Title: {chunk['heading_path']}"
+
         return {
             **chunk,
             "source_uri": source_uri,

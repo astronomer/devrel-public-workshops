@@ -86,7 +86,7 @@ def retrieve_context(query: str, limit: int = 10) -> list[dict]:
     query_vector = embed_texts([query], model=_EMBEDDING_MODEL)[0]
     columns = ["chunk_id", "title", "body", "source_uri", "context_prefix"]
 
-    conn = get_duckdb_conn(read_only=True)
+    conn = get_duckdb_conn()
     try:
         vector_rows = conn.execute(
             "SELECT chunk_id, title, body, source_uri, context_prefix "

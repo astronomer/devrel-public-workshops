@@ -25,7 +25,7 @@ _MAX_ROWS = 50
 def _connect():
     from include.aimlops.persistence import get_duckdb_conn
 
-    return get_duckdb_conn(read_only=True)
+    return get_duckdb_conn()
 
 
 def list_tables() -> str:

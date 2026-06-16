@@ -38,7 +38,7 @@ def replace_table(
 
 
 def _records(table: str) -> list[dict]:
-    with get_duckdb_conn(read_only=True) as conn:
+    with get_duckdb_conn() as conn:
         result = conn.execute(f"SELECT * FROM {table}")
         columns = [col[0] for col in result.description]
         return [dict(zip(columns, row)) for row in result.fetchall()]

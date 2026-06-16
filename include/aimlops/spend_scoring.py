@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-_MODEL_NAME = "spend_model_elastic_net."
+_MODEL_NAME = "spend_model_elastic_net"
 _DEFAULT_TRIP_DAYS = 7
 _AI_FEATURE_KEYS = ("trip_occasion", "enthusiasm", "budget_signal")
 _CATEGORICAL = (
@@ -25,7 +25,7 @@ def load_best_model() -> dict:
     """Read the production spend_model: version, run, and trained feature columns."""
     from include.aimlops.persistence import get_duckdb_conn
 
-    with get_duckdb_conn(read_only=True) as conn:
+    with get_duckdb_conn() as conn:
         row = conn.execute(
             "SELECT model_version, run_id FROM ml_models "
             "WHERE model_name = ? AND stage = 'production' "
@@ -110,14 +110,18 @@ def build_feature_row(prospect: dict) -> dict:
     return features
 
 
-def score(model: dict, features: dict) -> float:
+def load_estimator(model: dict):
+    """Pull the pickled estimator for *model* from the MLOps tracking store."""
+    from include.mlops_tracking import MlopsTracker
+
+    return MlopsTracker().load_model(model["model_name"], stage="production")
+
+
+def predict(estimator, model: dict, features: dict) -> float:
     """Realign the feature row to the model's trained columns and predict."""
     import numpy as np
     import polars as pl
 
-    from include.mlops_tracking import MlopsTracker
-
-    estimator = MlopsTracker().load_model(model["model_name"], stage="production")
     feature_names = model["feature_names"]
 
     frame = pl.DataFrame([features]).drop("booking_id")
@@ -129,6 +133,11 @@ def score(model: dict, features: dict) -> float:
 
     vector = [float(row.get(name, 0)) for name in feature_names]
     return float(estimator.predict(np.array([vector]))[0])
+
+
+def score(model: dict, features: dict) -> float:
+    """Load the estimator and predict in one call."""
+    return predict(load_estimator(model), model, features)
 
 
 def catering_revenue_report(

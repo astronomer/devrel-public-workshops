@@ -37,8 +37,9 @@ def spend_inference():
     def score_target(model: dict, target: dict) -> dict:
         from include.aimlops import spend_scoring
 
+        estimator = spend_scoring.load_estimator(model)
         features = spend_scoring.build_feature_row(target)
-        estimate = spend_scoring.score(model, features)
+        estimate = spend_scoring.predict(estimator, model, features)
         return {
             "customer_id": target.get("customer_id"),
             "food_spend_pp_pd": estimate,

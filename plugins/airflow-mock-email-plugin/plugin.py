@@ -1,28 +1,3 @@
-"""
-Mock Email Plugin for Apache Airflow 3.1+ (AstroTrips Inbox)
-
-A read-only viewer for the AstroTrips prospect email exchange and the
-decision trace behind each agent reply. There is no real mail server and the
-plugin never calls the Airflow REST API: it only reads data.
-
-Data sources (mirrors include/aimlops/persistence.py):
-  - Primary: the Airflow Variables ``aimlops_email_threads``,
-    ``aimlops_email_messages`` and ``aimlops_decision_traces``, each a JSON
-    list of row dicts. The workshop Dags sync these in the Astro IDE demo
-    env, where the API server and the workers do not share a filesystem.
-  - Fallback: a direct read from the DuckDB file at ``AIMLOPS_DB_PATH`` or
-    ``$AIRFLOW_HOME/include/astrotrips.duckdb`` (works locally, where the API
-    server shares the worker filesystem).
-
-The plugin is deliberately a viewer only: it never triggers Dags and never
-writes. To populate the inbox, run the setup Dag, then the mock_prospect Dag.
-
-Whole tables are loaded and joined in Python rather than via SQL joins, and
-every read uses ``SELECT *``. That keeps the plugin tolerant of schema drift
-(the decision_traces table is still being shaped), and the data volume in the
-demo is tiny.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -50,9 +25,6 @@ DB_PATH = os.environ.get("AIMLOPS_DB_PATH") or os.path.join(
 
 VARIABLE_PREFIX = "aimlops_"
 
-# Inline the nav icon as a data URI. A path here is resolved against the UI's
-# <base href>, so an absolute /inbox/... path drops Astro's deployment sub-path
-# and 404s in the cloud. A data URI renders with no fetch, base path or proxy.
 _ICON_DATA_URI = "data:image/svg+xml;base64," + base64.b64encode(
     (BASE_DIR / "assets" / "icon.svg").read_bytes()
 ).decode("ascii")
@@ -60,11 +32,6 @@ _ICON_DATA_URI = "data:image/svg+xml;base64," + base64.b64encode(
 app = FastAPI(title="Mock Email Plugin")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.mount("/assets", StaticFiles(directory=BASE_DIR / "assets"), name="assets")
-
-
-# ---------------------------------------------------------------------------
-# Data access: Variable first (demo env), DuckDB fallback (local)
-# ---------------------------------------------------------------------------
 
 def _load_variable(table: str) -> list[dict] | None:
     """Return the synced rows for a table from its Airflow Variable, or None."""
@@ -81,20 +48,30 @@ def _load_variable(table: str) -> list[dict] | None:
     return data if isinstance(data, list) else None
 
 
+def _resolve_db() -> str:
+    """Return the database URI: MotherDuck for the demo, a local DuckDB file otherwise.
+
+    Airflow connections are not resolvable from the plugin's API-server context
+    (get_connection raises AirflowNotFoundException there), so the database
+    location comes from the environment instead. The demo deployment sets
+    ``MOTHERDUCK_URI`` to a full ``md:`` URI (MotherDuck token included);
+    workshop attendees leave it unset and read the local DuckDB file.
+    """
+    return os.environ.get("MOTHERDUCK_URI") or DB_PATH
+
+
 def _db_records(table: str) -> list[dict]:
     """Return all rows of a table from DuckDB as column-keyed dicts."""
+    database = _resolve_db()
+    read_only = not database.startswith("md:")
+    conn = duckdb.connect(database, read_only=read_only)
     try:
-        conn = duckdb.connect(DB_PATH, read_only=True)
-        try:
-            cur = conn.execute(f"SELECT * FROM {table}")
-            cols = [c[0] for c in cur.description]
-            rows = cur.fetchall()
-        finally:
-            conn.close()
-        return [dict(zip(cols, r)) for r in rows]
-    except Exception as e:
-        log.warning("mock_email_plugin: read of %r failed: %s", table, e)
-        return []
+        cur = conn.execute(f"SELECT * FROM {table}")
+        cols = [c[0] for c in cur.description]
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+    return [dict(zip(cols, r)) for r in rows]
 
 
 def _load_records(table: str) -> list[dict]:

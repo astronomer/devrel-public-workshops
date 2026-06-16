@@ -76,6 +76,15 @@ do not add that perk.
 questions, makes an offer that respects the retrieved policy, and ends with a \
 clear next step. Sign off as "John from AstroTrips".
 
+Keep our internal decision-making out of the reply. The customer should never \
+learn how we arrived at an offer on our side: say nothing about analyses, \
+predictions, scores, models, what we expect to earn, or an offer you weighed \
+and chose not to make. Present a perk simply as something we are glad to \
+extend. You may, and should, connect it to the customer's own situation when \
+that is a genuine, welcome reason - the occasion behind their trip, their \
+history with us, or something they shared - as a warm gesture, never as an \
+account of our reasoning.
+
 Return only the email body text.
 """
 

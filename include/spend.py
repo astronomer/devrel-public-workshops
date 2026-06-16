@@ -41,7 +41,7 @@ def estimate_spend(prospect: dict) -> dict:
         log.warning("spend_inference run %s ended in state=%s", dag_run_id, state)
         return {"dag_run_id": dag_run_id, "food_spend_pp_pd": None}
 
-    conn = get_duckdb_conn(read_only=True)
+    conn = get_duckdb_conn()
     try:
         row = conn.execute(
             "SELECT food_spend_pp_pd FROM spend_predictions WHERE dag_run_id = ?",

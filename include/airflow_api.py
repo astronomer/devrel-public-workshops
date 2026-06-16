@@ -55,26 +55,24 @@ def trigger_dag_run(dag_id: str, conf: dict) -> str:
     return dag_run_id
 
 
-def wait_for_dag_run(dag_id: str, dag_run_id: str, interval: int = 1) -> str:
-    response = requests.get(
-        f"{_BASE_URL}/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait",
-        headers=_auth_headers(),
-        params={"interval": interval},
-        timeout=_WAIT_TIMEOUT,
-        stream=True,
-    )
-    response.raise_for_status()
-    for _ in response.iter_lines():
-        pass
-    state_response = requests.get(
-        f"{_BASE_URL}/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
-        headers=_auth_headers(),
-        timeout=30,
-    )
-    state_response.raise_for_status()
-    state = state_response.json()["state"]
-    log.info("%s run %s finished: state=%s", dag_id, dag_run_id, state)
-    return state
+def wait_for_dag_run(dag_id: str, dag_run_id: str, interval: int = 3) -> str:
+    import time
+
+    terminal = {"success", "failed", "cancelled"}
+    deadline = time.time() + _WAIT_TIMEOUT
+    while time.time() < deadline:
+        response = requests.get(
+            f"{_BASE_URL}/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+            headers=_auth_headers(),
+            timeout=30,
+        )
+        response.raise_for_status()
+        state = response.json()["state"]
+        if state in terminal:
+            log.info("%s run %s finished: state=%s", dag_id, dag_run_id, state)
+            return state
+        time.sleep(interval)
+    raise TimeoutError(f"{dag_id}/{dag_run_id} did not finish within {_WAIT_TIMEOUT}s")
 
 
 def latest_run_id(dag_id: str) -> str | None:

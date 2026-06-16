@@ -26,9 +26,8 @@ class ProspectFeatures(BaseModel):
 
 
 @dag(
-    schedule=None,
     tags=["exercise 3"],
-    doc_md=__doc__,
+    max_active_tasks=1
 )
 def feature_engineering_ai():
 
@@ -47,18 +46,25 @@ def feature_engineering_ai():
         llm_conn_id=_LLM_CONN_ID,
         output_type=ProspectFeatures,
         system_prompt=FEATURE_EXTRACTION_SYSTEM_PROMPT,
+        map_index_template="{{ custom_map_index }}"
     )
     def extract_features(email: dict) -> str:
+        from airflow.sdk import get_current_context
+        context = get_current_context()
+        context["custom_map_index"] = "Email thread: " + str(email["thread_id"])
         return f"Extract the features from this prospect email:\n\n{email['body']}"
 
     @task
     def fill_historical_features() -> None:
         from include.aimlops.ai_features import synthetic_ai_features
-        from include.aimlops.persistence import get_duckdb_conn, load_records, replace_table
+        from include.aimlops.persistence import get_duckdb_conn, replace_table
 
-        records = synthetic_ai_features(load_records("bookings"))
         columns = ["booking_id", "trip_occasion", "enthusiasm", "budget_signal"]
         with get_duckdb_conn() as conn:
+            result = conn.execute("SELECT * FROM bookings")
+            cols = [c[0] for c in result.description]
+            bookings = [dict(zip(cols, row)) for row in result.fetchall()]
+            records = synthetic_ai_features(bookings)
             replace_table(conn, "ai_features", columns, records)
 
     @task(outlets=[AI_FEATURES_READY])

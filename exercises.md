@@ -198,7 +198,6 @@ The `culinary_personas` clustering can only sort passengers *after* they have sp
 
 ```python
 from airflow.sdk import chain, dag, task
-from datetime import datetime
 from include.aimlops.assets import DETERMINISTIC_FEATURES_READY
 
 _SOURCE_TABLES = [
@@ -214,7 +213,7 @@ _SOURCE_TABLES = [
 ]
 
 
-@dag(start_date=datetime(2026, 6, 1), schedule="@daily", tags=["exercise 2"])
+@dag(tags=["exercise 2"])
 def feature_engineering_traditional():
 
     @task
@@ -270,7 +269,7 @@ def feature_engineering_traditional():
 feature_engineering_traditional()
 ```
 
-3. If you are using the Astro IDE, sync your changes to the test deployment. If you are using the Astro CLI, run `astro dev run dags reserialize` for the Dag to show up without having to wait for the next Dag processor parse.
+3. If you are using the Astro IDE, sync your changes to the test deployment. If you are using the Astro CLI, run `astro dev run dags reserialize` for the Dag to show up without having to wait for the next Dag processor parse. Run the `feature_engineering_traditional` Dag manually in the Airflow UI and wait for it to complete.
 
 4. Search for the Dag in the Dags list and click on the Dag name and then on the graph icon (or use the shortcut `g`) to see the graph.
 
@@ -281,8 +280,6 @@ feature_engineering_traditional()
 6. Next, we'll add the Dag that trains the model based on these features. Create a new file in the Dags folder called `train_spend_model.py` and add the following code. Safe the file and syn to your test deployment (Astro IDE) or run `astro dev run dags reserialize` (Astro CLI).
 
 ```python
-from datetime import datetime, timedelta
-
 from airflow.sdk import chain, dag, task
 
 from include.aimlops.assets import MODEL_REGISTERED, PLUGIN_SYNC
@@ -298,12 +295,8 @@ _LR_L1_RATIO = [0.2, 0.5]
 
 
 @dag(
-    start_date=datetime(2026, 1, 1),
-    schedule=None,
     tags=["exercise 2"],
     max_active_tasks=1,  # local db only allows one concurrent write
-    default_args={"retries": 3, "retry_delay": timedelta(seconds=10)},
-    doc_md=__doc__,
 )
 def train_spend_model():
 
@@ -337,11 +330,13 @@ def train_spend_model():
             "feature_set": "ai" if use_ai else "deterministic",
         }
 
-    @task(max_active_tis_per_dagrun=1)  # local db only allows one concurrent write
+    @task(max_active_tis_per_dagrun=1, map_index_template="{{ custom_map_index }}")
     def train_random_forest(n_estimators: int, max_depth: int, training_set: dict) -> dict:
         import numpy as np
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.model_selection import train_test_split
+
+        from airflow.sdk import get_current_context
 
         from include.aimlops.training import evaluate_regression
         from include.mlops_tracking import MlopsTracker
@@ -391,6 +386,9 @@ def train_spend_model():
         model_version = tracker.log_model(run_id, model_name, "RandomForestRegressor", model)
         tracker.end_run(run_id)
 
+        context = get_current_context()
+        context["custom_map_index"] = f"Trees: {n_estimators} | Depth: {max_depth} | RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}"
+
         return {
             "run_id": run_id,
             "model_name": model_name,
@@ -409,13 +407,15 @@ def train_spend_model():
             "y_pred": preds.tolist(),
         }
 
-    @task(max_active_tis_per_dagrun=1)
+    @task(max_active_tis_per_dagrun=1, map_index_template="{{ custom_map_index }}")
     def train_linear(alpha: float, l1_ratio: float, training_set: dict) -> dict:
         import numpy as np
         from sklearn.linear_model import ElasticNet
         from sklearn.model_selection import train_test_split
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import StandardScaler
+
+        from airflow.sdk import get_current_context
 
         from include.aimlops.training import evaluate_regression
         from include.mlops_tracking import MlopsTracker
@@ -468,6 +468,9 @@ def train_spend_model():
         tracker.log_metrics(run_id, metrics)
         model_version = tracker.log_model(run_id, model_name, "ElasticNet", model)
         tracker.end_run(run_id)
+
+        context = get_current_context()
+        context["custom_map_index"] = f"Alpha: {alpha} | L1: {l1_ratio} | RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}"
 
         return {
             "run_id": run_id,
@@ -525,6 +528,7 @@ def train_spend_model():
 
 
 train_spend_model()
+
 ```
 
 7. Run the model `train_spend_model.py` Dag. 
@@ -572,6 +576,7 @@ from airflow.sdk import chain, dag, task
 from pydantic import BaseModel, Field
 
 from include.aimlops.assets import AI_FEATURES_READY
+from include.mission_control import MissionControlOperator
 from include.prompts import FEATURE_EXTRACTION_SYSTEM_PROMPT
 
 _LLM_CONN_ID = "pydanticai_default"
@@ -592,7 +597,10 @@ class ProspectFeatures(BaseModel):
     )
 
 
-@dag(tags=["exercise 3"])
+@dag(
+    tags=["exercise 3"],
+    max_active_tasks=1
+)
 def feature_engineering_ai():
 
     @task
@@ -610,18 +618,25 @@ def feature_engineering_ai():
         llm_conn_id=_LLM_CONN_ID,
         output_type=ProspectFeatures,
         system_prompt=FEATURE_EXTRACTION_SYSTEM_PROMPT,
+        map_index_template="{{ custom_map_index }}"
     )
     def extract_features(email: dict) -> str:
+        from airflow.sdk import get_current_context
+        context = get_current_context()
+        context["custom_map_index"] = "Email thread: " + str(email["thread_id"])
         return f"Extract the features from this prospect email:\n\n{email['body']}"
 
     @task
     def fill_historical_features() -> None:
         from include.aimlops.ai_features import synthetic_ai_features
-        from include.aimlops.persistence import get_duckdb_conn, load_records, replace_table
+        from include.aimlops.persistence import get_duckdb_conn, replace_table
 
-        records = synthetic_ai_features(load_records("bookings"))
         columns = ["booking_id", "trip_occasion", "enthusiasm", "budget_signal"]
         with get_duckdb_conn() as conn:
+            result = conn.execute("SELECT * FROM bookings")
+            cols = [c[0] for c in result.description]
+            bookings = [dict(zip(cols, row)) for row in result.fetchall()]
+            records = synthetic_ai_features(bookings)
             replace_table(conn, "ai_features", columns, records)
 
     @task(outlets=[AI_FEATURES_READY])
@@ -649,7 +664,7 @@ def feature_engineering_ai():
     _extracted = extract_features.expand(email=_emails)
     _filled = fill_historical_features()
     _written = write_features(_extracted)
-    chain(_filled, _written)
+    chain(_filled, _written, mission_control)
 
 
 feature_engineering_ai()
@@ -679,7 +694,7 @@ Within your `feature_engineering_ai` Dag:
 1. Import the `MissionControlOperator` from `include.mission_control`.
 2. Create a task instance with `task_id="mission_control"`.
 3. Add it as the **last step** in the Dag (downstream of `write_features`).
-4. Sync your changes.
+4. If you are running the workshop in the Astro IDE sync your changes. If you are running locally use `astro dev run dags reserialize` or wait up to 30 seconds for the changes to be picked up automatically.
 5. Run the `feature_engineering_ai` Dag.
 6. Check the `mission_control` task logs for your clearance code and share it!
 
