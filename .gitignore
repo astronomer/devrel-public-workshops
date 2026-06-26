@@ -10,4 +10,3 @@ webserver_config.py
 airflow.cfg
 airflow.db
 include/astrotrips.duckdb
-include/review_index/

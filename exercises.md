@@ -690,7 +690,6 @@ In this exercise, you will build a Dag that converts review text into vector emb
         documents=_documents,
         llm_conn_id="pydanticai_default",
         embed_model="text-embedding-3-small",
-        persist_dir=f"{AIRFLOW_HOME}/include/review_index",
     )
     ```
 
@@ -699,17 +698,14 @@ In this exercise, you will build a Dag that converts review text into vector emb
 
 ## Save the embeddings
 
-1. Add a task that loads the persisted index and maps each vector back to its review via the metadata. The persisted index could also be used directly for retrieval, for example with the `LlamaIndexRetrievalOperator`, but our support portal and the agent in the next exercise read from the database:
+1. Add a task that maps each embedding vector back to its review. The operator returns one chunk per document, and each chunk keeps the metadata we attached earlier, so we can pair every `review_id` with its `vector`:
 
     ```python
     @task
     def prepare_rows(result):
-        from llama_index.core import StorageContext
-
-        ctx = StorageContext.from_defaults(persist_dir=result["persist_dir"])
         return [
-            (ctx.docstore.get_node(node_id).metadata["review_id"], vector)
-            for node_id, vector in ctx.vector_store.data.embedding_dict.items()
+            (chunk["metadata"]["review_id"], chunk["vector"])
+            for chunk in result["chunks"]
         ]
 
     _prepared_rows = prepare_rows(_embeddings.output)

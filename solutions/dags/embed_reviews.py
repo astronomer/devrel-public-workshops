@@ -40,18 +40,14 @@ def embed_reviews():
         documents=_documents,
         llm_conn_id="pydanticai_default",
         embed_model="text-embedding-3-small",
-        persist_dir=f"{AIRFLOW_HOME}/include/review_index",
     )
 
     @task
     def prepare_rows(result):
-        """Load the persisted index and map each vector back to its review."""
-        from llama_index.core import StorageContext
-
-        ctx = StorageContext.from_defaults(persist_dir=result["persist_dir"])
+        """Map each embedding vector back to its review via the chunk metadata."""
         return [
-            (ctx.docstore.get_node(node_id).metadata["review_id"], vector)
-            for node_id, vector in ctx.vector_store.data.embedding_dict.items()
+            (chunk["metadata"]["review_id"], chunk["vector"])
+            for chunk in result["chunks"]
         ]
 
     _prepared_rows = prepare_rows(_embeddings.output)
