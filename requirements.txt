@@ -1,4 +1,4 @@
 # Astro Runtime includes the following pre-installed providers packages: https://www.astronomer.io/docs/astro/runtime-image-architecture#provider-packages
-apache-airflow-providers-common-sql==1.30.2
+apache-airflow-providers-common-sql==2.0.3
 airflow-provider-duckdb==0.2.0
-apache-airflow-providers-common-ai[openai,llamaindex]==0.5.0
+apache-airflow-providers-common-ai[openai,llamaindex]==0.6.0

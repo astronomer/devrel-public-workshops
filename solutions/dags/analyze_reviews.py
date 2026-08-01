@@ -86,10 +86,10 @@ def analyze_reviews():
                 image_path,
                 submitted_at,
                 "analyzed",
-                analysis["sentiment"],
-                analysis["category"],
-                analysis["summary"],
-                analysis.get("image_description"),
+                analysis.sentiment,
+                analysis.category,
+                analysis.summary,
+                analysis.image_description,
             ))
         return rows
 

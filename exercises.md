@@ -221,7 +221,7 @@ The LLM should return structured data, not free text.
         image_description: str | None = None
     ```
 
-This is a regular Pydantic `BaseModel`. The LLM task validates the response against it and serializes the result as a dictionary for XCom, so downstream tasks can pick out individual fields. Using `Literal` types constrains the LLM to only return valid values. Define the class at module scope, not nested inside the Dag function.
+This is a regular Pydantic `BaseModel`. The LLM task validates the response against it and passes the resulting `ReviewAnalysis` instance to downstream tasks via XCom, so you can read its fields directly (`analysis.sentiment`, and so on). Using `Literal` types constrains the LLM to only return valid values. Define the class at module scope, not nested inside the Dag function.
 
 ## Add the query and formatting tasks
 
@@ -330,7 +330,7 @@ This is the core of the exercise. The `@task.llm` decorator turns a regular Pyth
 
 The LLM results need to be written back to the database. We'll collect all analyses together with the original review data and insert them using a delete-then-insert pattern.
 
-1. Add a task to combine the original query data with the LLM output. Each `analysis` arrives as a dictionary with the `ReviewAnalysis` fields:
+1. Add a task to combine the original query data with the LLM output. Each `analysis` arrives as a `ReviewAnalysis` instance, so you read its fields with attribute access:
 
     ```python
     @task
@@ -345,15 +345,18 @@ The LLM results need to be written back to the database. We'll collect all analy
                 image_path,
                 submitted_at,
                 "analyzed",
-                analysis["sentiment"],
-                analysis["category"],
-                analysis["summary"],
-                analysis.get("image_description"),
+                analysis.sentiment,
+                analysis.category,
+                analysis.summary,
+                analysis.image_description,
             ))
         return rows
 
     _prepared_rows = prepare_rows(_reviews.output, _analyses)
     ```
+
+> [!NOTE]
+> Structured LLM output (`output_type=BaseModel`) arrives downstream as the actual Pydantic model instance, not a dictionary. Use attribute access (`analysis.sentiment`), not `analysis["sentiment"]` or `.get(...)`.
 
 2. Add the `SQLInsertRowsOperator` to save the results. The `outlets` parameter declares that this task updates the `analyzed-reviews` asset, which will trigger downstream Dags:
 
