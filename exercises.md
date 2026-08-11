@@ -17,6 +17,9 @@
 
 This workshop does not require any local Airflow installation. Instead, all development takes place within Astro and the Astro IDE. The first step is to set up a **free** Astro trial to run Airflow and access the Astro IDE for Dag development.
 
+> [!NOTE]
+> If you are an experienced Airflow user, you can use your local Airflow environment for all the exercises. However, the exercise instructions focus on the Astro IDE for less experienced users who do not have a local setup.
+
 While a deep understanding of the Astro platform is not required, here is a quick overview: Each customer has a dedicated Organization on Astro. An Organization can contain multiple Workspaces (for example, one per team). Each Workspace can have multiple Deployments, where a Deployment is a fully hosted Airflow environment.
 
 1. Create a [free trial of Astro](https://www.astronomer.io/lp/signup/?utm_source=conference&utm_medium=web&utm_campaign=devrel-workshop).
@@ -60,7 +63,7 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 
 ![Navigate to Connections](doc/screenshot-navigate-connections.png)
 
-1. In Astro, navigate to _Environment_ → _Connections_ and click the _+ Connection_ button.
+1. In Astro, navigate to _Environment_ → _Connections_ and click the _+ New Connection_ button.
 2. In the dialog, search for and select _Generic_, then enter the following details:
 
     ![Select generic type](doc/screenshot-add-connection-generic.png)
@@ -68,7 +71,9 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
     - **CONNECTION ID**: `duckdb_astrotrips`
     - **TYPE**: `duckdb`
     - **HOST**: `include/astrotrips.duckdb`
-    - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
+    - Under _Auto-linking_:
+        - Set **ALL DEPLOYMENTS** to _On_
+        - Set **ALL ASTRO IDE PROJECTS** to _On_
 
     ![Add connection](doc/screenshot-add-connection.png)
 
@@ -79,16 +84,18 @@ This workshop relies on a DuckDB database. To ensure your test environments can 
 
 ## Add the LLM connection
 
-The AI exercises require an OpenAI API key (or any compatible provider). The LLM tasks in this workshop read the API key and the model name from an Airflow connection, so we create a second workspace-wide connection.
+**The AI exercises require an OpenAI API key (or any compatible provider)**. The LLM tasks in this workshop read the API key and the model name from an Airflow connection, so we create a second workspace-wide connection.
 
-1. Still in _Environment_ → _Connections_, click _+ Connection_ again.
+1. Navigate _Environment_ → _Connections_, click _+ New Connection_.
 2. Search for and select _Generic_, then enter the following details:
 
     - **CONNECTION ID**: `pydanticai_default`
     - **TYPE**: `pydanticai`
     - **PASSWORD**: your API key
     - **EXTRA**: `{"model": "openai:gpt-5-mini"}`
-    - Set **AUTOMATICALLY LINK TO ALL DEPLOYMENTS** to _On_
+    - Under _Auto-linking_:
+        - Set **ALL DEPLOYMENTS** to _On_
+        - Set **ALL ASTRO IDE PROJECTS** to _On_
 
 3. Click _Create Connection_.
 
@@ -100,27 +107,31 @@ The AI exercises require an OpenAI API key (or any compatible provider). The LLM
 The final setup step is to start a test deployment (a fully functional Airflow environment) and run the `setup` Dag, which creates the DuckDB database with tables and sample data for the following exercises.
 
 > [!CAUTION]
-> Do not close the Astro IDE browser tab during the workshop. Always use this tab to return to the Astro IDE instead of reopening it to preserve your session. If you close it, you will need to create a new test deployment.
+> The Astro IDE organizes work into sessions by project. For this workshop, always work in the same session. If you get lost, return to the Astro IDE start page, which lists your sessions and should show the untitled session that was created automatically when you opened the project.
 
-1. Navigate to the _Astro IDE_ and click _Start Test Deployment_ in the top right corner. The deployment takes 3-5 minutes to spin up.
-2. While the deployment is starting, click the dropdown next to _Sync to Test_ and select _Test Deployment Details_.
+1. Navigate to the _Astro IDE_ and open your session.
+
+    ![Open session in Astro IDE](doc/astro-ide-open-session.png)
+
+2. Click _Start Test Deployment_ in the top right corner. The deployment takes 3-5 minutes to spin up.
+3. **While the deployment is starting**, click the dropdown next to _Sync to Test_ and select _Test Deployment Details_.
 
     ![Open test deployment details](doc/screenshot-open-deployment-details.png)
 
-3. Navigate to the _Environment_ tab and click _Edit Deployment Variables_.
-4. In the popup, remove the `AIRFLOW__SCHEDULER__USE_JOB_SCHEDULE` variable to enable scheduling for the test deployment.
-5. Click _Update Environment Variables_.
+4. Navigate to the _Environment_ tab and click _Edit Deployment Variables_.
+5. In the popup, remove the `AIRFLOW__SCHEDULER__USE_JOB_SCHEDULE` variable to enable scheduling for the test deployment.
+6. Click _Update Environment Variables_.
 
     ![Change environment variables](doc/screenshot-env-vars.png)
 
 > [!NOTE]
 > Scheduling is disabled by default for test deployments to prevent Dags from running automatically. This gives you maximum control during development and helps avoid unwanted side effects. However, for this workshop, we want Dags to be scheduled based on asset updates, so we enable scheduling accordingly.
 
-6. Back in the Astro IDE, once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
+7. Back in the Astro IDE session, once the test deployment is ready, select _Open Airflow_, from the same dropdown menu.
 
     ![Open Airflow](doc/screenshot-open-airflow.png)
 
-7. In the Airflow UI, open the Dags view from the left menu and trigger the `setup` Dag using the play button.
+8. In the Airflow UI, open the Dags view from the left menu and trigger the `setup` Dag using the play button.
 
     ![Trigger setup Dag](doc/screenshot-trigger-setup-dag.png)
 
@@ -255,7 +266,7 @@ This is a regular Pydantic `BaseModel`. The LLM task validates the response agai
 > [!NOTE]
 > When passing the result of a `SQLExecuteQueryOperator` to a `@task` function, you must use `.output` to get the XCom value. This is one way of passing data between classic operators and TaskFlow API based tasks.
 
-## Test your Dag in the Astro IDE
+## Test your Dag in the Astro IDE (optional)
 
 To get a better understanding of our Dag, let's run in right from the Astro IDE, without opening Airflow at all.
 
@@ -264,12 +275,15 @@ To get a better understanding of our Dag, let's run in right from the Astro IDE,
 
     ![Open test tab within the Astro IDE](doc/screenshot-astro-ide-test-tab.png)
 
-3. Select the `analyze_review` Dag from the dropdown menu.
-4. Click on _Run Dag_ to run your Dag.
+3. Select the `setup` Dag from the dropdown menu.
+4. Click on _Run Dag_ to run the setup process for the database.
+
+5. Select the `analyze_review` Dag from the dropdown menu.
+6. Click on _Run Dag_ to run your Dag.
 
     ![Run Dag from within the Astro IDE](doc/screenshot-astro-ide-test-run-dag.png)
 
-5. Wait for completion, and check the logs for the `format_context` task by selecting it.
+7. Wait for completion, and check the logs for the `format_context` task by selecting it.
 
     ![Task logs within the Astro IDE](doc/screenshot-astro-ide-run-dag-logs.png)
 
@@ -279,7 +293,7 @@ This is a great way to get an intermediate overview of your data pipeline implem
 
 This is the core of the exercise. The `@task.llm` decorator turns a regular Python function into an LLM-powered task.
 
-1. Add the LLM task:
+1. Add the LLM task at the bottom of the Dag function within `analyze_reviews.py`:
 
     ```python
     @task.llm(
@@ -388,10 +402,11 @@ The LLM results need to be written back to the database. We'll collect all analy
 > [!TIP]
 > **Sync tips:**
 > - Changes to Dag files sync fast. Changes to files in `include/` trigger an image rebuild, which takes longer.
-> - While waiting for a sync, you can ask the Astro IDE AI questions about your Dag or about Airflow.
+> - While waiting for a sync, you can ask Otto questions about your Dag or about Airflow.
 
-2. Trigger the `analyze_reviews` Dag.
-3. Once complete, open the **AstroTrips Support Portal**. You should see all 8 reviews with AI analysis results (sentiment, category, summary) and image descriptions for the 3 reviews that have photos.
+2. Open Airflow and trigger the `setup` Dag to reset the database and ensure it exists.
+3. Trigger the `analyze_reviews` Dag.
+4. Once complete, open the **AstroTrips Support Portal**. You should see all 8 reviews with AI analysis results (sentiment, category, summary) and image descriptions for the 3 reviews that have photos.
 
 ![AstroTrips analyzed review](doc/screenshot-analyzed-review.png)
 
@@ -544,7 +559,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 
 2. Now create the four routing handlers, in form of `SQLExecuteQueryOperator` tasks,  inside the task group. One for each routing destination. Each one uses the **`parameters`** keyword with DuckDB's `$variable` syntax for safe parameter binding.
 
-**Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, following the same pattern, changing only the `routed_to` value:
+**Your task:** Add the refund task, and create the remaining three operators, using the task IDs: `route_safety`, `route_marketing`, and `route_general`, **following the same pattern**, changing only the `routed_to` value:
 
     ```python
         _route_refund = SQLExecuteQueryOperator(
@@ -559,7 +574,7 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
         # TODO: Add _route_general (task_id = 'route_general', routed_to = 'general')
     ```
 
-3. Wire the branch to the handlers within the task group:
+3. Wire the branch to the handlers **within the task group**:
 
     ```python
         chain(
@@ -594,6 +609,10 @@ Each branch runs a `SQLExecuteQueryOperator` that updates the review's status an
 1. Sync your changes.
 2. Trigger the `setup` Dag manually to reset the state.
 3. Trigger the `analyze_reviews` Dag. Once it completes, the `route_reviews` Dag should trigger **automatically** via the asset.
+
+> [!NOTE]
+> `analyze_reviews` takes around 2 minutes to run for all reviews, while `route_reviews` takes another 5 minutes.
+
 4. While it is running, check the graph view of `route_reviews`. You should see the task group expanded with branching per review. Make yourself familiar with the different views Airflow offers, can you find the log output of individual task instances?
 5. Open the **AstroTrips Support Portal**! Reviews should now show a purple **ROUTED TO** box indicating the assigned team.
 
@@ -616,7 +635,7 @@ Within your `route_reviews` Dag:
 7. Open the latest run of `route_reviews` and check the `mission_control` task logs for your clearance code and share it!
 
 > [!IMPORTANT]
-> The first 3 that finish this challenge successfully receive a gift from Astronomer!
+> The first one(s) that finish this challenge successfully receive(s) a gift from Astronomer!
 
 ---
 
