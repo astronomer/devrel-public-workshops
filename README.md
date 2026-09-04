@@ -1,146 +1,50 @@
-![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.1-blue?style=for-the-badge)
+> [!WARNING]
+> **This repository is no longer actively maintained.**
+>
+> The workshop has moved to the [`workshops/astrotrips/dag-writing`](https://github.com/astronomer/devrel-public-workshops/tree/workshops/astrotrips/dag-writing) branch of [`astronomer/devrel-public-workshops`](https://github.com/astronomer/devrel-public-workshops), where it is kept up to date alongside the other AstroTrips workshops. Please use that branch instead.
 
-# Workshop base
+![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.3-blue?style=for-the-badge)
 
-This is the base repository for workshop development. It will be updated with more common elements and future Airflow releases. Use this repository as the base branch when developing a new workshop.
+# Dag writing best practices
+
+Welcome! 🚀
+
+This is a workshop about Dag writing best practices. It is designed to help you learn about Airflow best practices by working through a series of exercises.
+
+**What you will learn:**
+
+- Connecting Dags with asset-aware scheduling, including conditional expressions and `AssetOrTimeSchedule`.
+- Adapting a Dag to its data at runtime with dynamic task mapping.
+- Using Dag parameters to make retries, ownership and failure handling explicit.
+- Spotting and removing top-level Dag code, one of the most common Airflow anti-patterns.
+- Writing a Dag validation test that stops the next Dag from regressing your standards.
 
 > [!NOTE]
 > tl;dr: jump directly to the [exercises](exercises.md).
 
 ## Prerequisites
 
-- Access to the [Astro IDE](https://www.astronomer.io/product/ide/).
+- Access to the [Astro IDE](https://www.astronomer.io/product/ide/). _You don't need to set this up now. It is part of the exercise later._
+
+No API keys and no external services are required. Every Dag in this repository runs against a built-in, mocked API.
 
 ## Scenario: AstroTrips
 
-AstroTrips is a fictional travel company specializing in interplanetary trips. Customers can book journeys to destinations like Mars, Venus, or Saturn, complete with launch windows, spacecraft assignments, and premium add-ons.
+AstroTrips is a fictional travel company specializing in interplanetary trips. Customers can book journeys to destinations like the Moon, Mars, or Europa, complete with launch windows and passenger manifests.
+
+You are joining the AstroTrips **flight operations** team. Before any ship leaves the pad, mission control needs a launch readiness report: what the conditions look like at each destination, what they looked like on the day the launch window opens, and whether the transfer trajectory is taking a radiation hit.
+
+The Dags that produce that report already exist, but they work by accident. They only ever look at a single planet, they are not connected to each other, and the report Dag has no owner, no retries and no cap on consecutive failures. A fourth Dag, unrelated to the report, makes an expensive call every time it is parsed. Your job is to fix them.
 
 ![AstroTrips](doc/astrotrips-banner.png)
-
-The underlying database used for AstroTrips is DuckDB, and it comes with a set of base tables and might be extended with additional tables depending on the workshop.
-
-![AstroTrips](doc/astrotrips-base-tables.png)
-
-## Using MotherDuck (optional)
-
-> [!CAUTION]
-> This optional step can be skipped for regular workshop participation. It is intended for advanced exploration after the workshop.
-
-This project is configured to use DuckDB with a local database file stored in `include/astrotrips.duckdb`. While this setup is sufficient for this scenario, it has specific limitations:
-
-- **No concurrent access:** The database cannot be written to by multiple concurrent processes.
-- **No distributed processing:** Because the database is a local file, all Airflow tasks must run on the same node to access it. This works reliably with the Astro CLI local environment (which uses the `LocalExecutor` to spawn worker subprocesses within the scheduler container) or a single-worker setup. However, it will fail in a distributed environment with multiple distinct worker nodes.
-
-To run this code in a distributed setup or enable concurrent access, you can easily switch to [MotherDuck](https://motherduck.com), a managed cloud service for DuckDB.
-
-1. Sign up for a free account at [motherduck.com](https://motherduck.com).
-2. Once logged in, create a new attached database named `astrotrips`.
-3. Go to **Settings** -> **Integrations** -> **Access Tokens**.
-4. Click **Create token**, keep the default settings, and select **Create token** in the popup window.
-5. Copy the generated token and update the connection details in your `.env` file as follows:
-
-```
-AIRFLOW_CONN_DUCKDB_ASTROTRIPS='{
-    "conn_type":"duckdb",
-    "host":"md:astrotrips?motherduck_token=<YOUR_MOTHERDUCK_TOKEN>"
-}'
-```
-
-> **Note:** Ensure you also update any other references to the local DuckDB file path, such as `include/connections.yaml` if applicable.
 
 ## Using Astro CLI (optional)
 
 > [!CAUTION]
 > This optional step can be skipped for regular workshop participation. It is intended for advanced exploration after the workshop.
 
-Workshops can also be worked on using the Astro CLI and a local, containerized Airflow setup. Copy `.env.dist` to `.env`, then adjust the configuration values if needed. You can start the project with `astro dev start`. However, these workshops are primarily designed for use with the Astro IDE.
+Workshops can also be worked on using the Astro CLI and a local Airflow setup. You can start the project with `astro dev start`. However, these workshops are primarily designed for use with the Astro IDE.
 
-## Workshop repo structure
+## Get started
 
-This repository uses branches to represent individual workshops.
-
-New workshops follow a structured naming scheme:
-```
-workshops/<scenario>/<workshop-name>
-```
-
-Using slash-separated branch names allows many tools (for example GitHub, GitLab, and IDE integrations) to render branches in a tree-like structure, making related workshops easier to discover and navigate.
-
-Each scenario has a base branch:
-```
-workshops/<scenario>/_base
-```
-
-which contains all shared components for the scenario, such as:
-- scenario description and context
-- shared utilities
-- setup DAGs and helper functions
-- reusable operators
-
-> [!Warning]
-> This branch is not a runnable workshop on its own. It serves as a template and foundation for all scenario-based workshops.
-
-Individual workshops are created as separate branches derived from `_base`, for example:
-```
-workshops/astrotrips/etl
-```
-
-These branches extend the base scenario with workshop-specific components, Dags, exercises, and instructions.
-
-## Gamification
-
-The base project comes with a custom `MissionControlOperator` ([include/mission_control.py](include/mission_control.py)).
-
-If gamification is required (for example to hand out swag during a workshop), an additional exercise can be added at the very end. In this exercise, participants are asked to add the `MissionControlOperator` as the final task in their Dag. If multiple Dags are part of the workshop, just select one specific of them.
-
-When the Dag is executed successfully, this task will emit a clearance code in the task logs, for example:
-```
-🔐 Interstellar clearance code: ORBIT-PM5G2-CLVHG-TT64U
-```
-
-The clearance code consists of four parts:
-```
-<prefix>-<types_hash>-<edges_hash>-<names_hash>
-```
-- `types_hash` is derived from the operator types used in the Dag
-- `edges_hash` is derived from how tasks are connected
-- `names_hash` is derived from the task IDs
-
-Before the workshop, the host runs the same operator as part of the solution Dag to obtain the reference clearance code. Solutions and codes can be kept in an Astronomer interal repo if required.
-
-Once participants have their code, they can submit it to the host (in person or via chat, depending on the workshop setup). The host can then compare it with the reference code from the solution.
-
-If participants implemented the correct Dag structure but used different task IDs, only the last part of the code will differ, for example:
-```
-Solution:           ORBIT-PM5G2-CLVHG-Y5P5X
-Different task IDs: ORBIT-PM5G2-CLVHG-TT64U
-```
-
-This allows the host to quickly assess how close a solution is to the intended outcome and decide whether the code is still acceptable.
-
-Since the clearance code is derived from the Dag structure and requires the workshop solution to be executed, it is difficult to fake and therefore provides a lightweight but effective form of cheat resistance without an external dependency.
-
-![Mission control](doc/mission-control.png)
-
-## README and exercises
-
-For each workshop:
-- remove unnecessary parts of this `README` to focus on the scenario introduction.
-- fill out the [exercises.md](exercises.md) to have a document fully focused on the actionable workshop exercises.
-
-### Conventions
-
-- Use numbered lists to indicate actual actions the participants has to do something.
-- Use callouts to share learning resources or indicate important information:
-
-**Link to learning resources:**
-```
-> [!TIP]
-> Learn more about [Airflow connections](https://www.astronomer.io/docs/learn/connections).
-```
-
-**Important steps / information:**
-```
-> [!IMPORTANT]
-> If you create a fork of this repository, ensure to never commit any connection credentials.
-```
+Please proceed by following the exercises in [exercises.md](exercises.md).

@@ -1,0 +1,4 @@
+# The code syntax examples are a reference library, not part of any exercise. Keeping them
+# out of the Dag processor means they never appear in the Airflow UI and never cost parse
+# time. Delete the line below if you want to run them in Airflow.
+code_syntax_examples/

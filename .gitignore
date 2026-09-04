@@ -1,12 +1,26 @@
-.git
 .env
 .DS_Store
 airflow_settings.yaml
-__pycache__/
-astro
 .venv
+
+# The astro CLI binary, if it gets downloaded into the project root.
+# Anchored, so it cannot swallow a folder named "astro" somewhere in the tree.
+/astro
+
+# Sibling AstroTrips branches generate this with their setup Dag. This workshop has no
+# database, but the file survives a branch switch, so keep ignoring it here.
+include/astrotrips.duckdb
+
+# Airflow runtime artifacts
+logs/
 airflow-webserver.pid
 webserver_config.py
 airflow.cfg
 airflow.db
-include/astrotrips.duckdb
+
+# Python and tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
