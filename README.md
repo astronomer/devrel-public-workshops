@@ -1,8 +1,3 @@
-> [!WARNING]
-> **This repository is no longer actively maintained.**
->
-> The workshop has moved to the [`workshops/astrotrips/dag-writing`](https://github.com/astronomer/devrel-public-workshops/tree/workshops/astrotrips/dag-writing) branch of [`astronomer/devrel-public-workshops`](https://github.com/astronomer/devrel-public-workshops), where it is kept up to date alongside the other AstroTrips workshops. Please use that branch instead.
-
 ![Workshop Airflow version](https://img.shields.io/badge/Airflow_version-3.3-blue?style=for-the-badge)
 
 # Dag writing best practices
