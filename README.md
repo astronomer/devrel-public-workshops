@@ -59,6 +59,23 @@ What you will learn:
 - Dynamic task mapping for hyperparameter tuning across multiple model configurations.
 - Tracking ML experiments directly in the Airflow UI via a custom plugin.
 
+### Dag writing workshop
+
+**Branch:** [`workshops/astrotrips/dag-writing`](https://github.com/astronomer/devrel-public-workshops/tree/workshops/astrotrips/dag-writing)
+
+Take a set of Dags that only work by accident and turn them into a connected, data-aware pipeline.
+
+- **Level**: Beginner to intermediate.
+- **Prerequisites**: Astro IDE access.
+- **API key(s)**: Not required.
+
+What you will learn:
+- Connecting Dags with asset-aware scheduling, including conditional expressions and `AssetOrTimeSchedule`.
+- Adapting a Dag to its data at runtime with dynamic task mapping.
+- Using Dag parameters to make retries, ownership and failure handling explicit.
+- Spotting and removing top-level Dag code, one of the most common Airflow anti-patterns.
+- Writing a Dag validation test that stops the next Dag from regressing your standards.
+
 ## Running a workshop
 
 All workshops are designed for the **Astro IDE** (no local setup needed). Each workshop README contains full setup instructions, including how to connect the repository in the IDE.
@@ -71,4 +88,5 @@ workshops/astrotrips/_base       Shared components (schema, fixtures, utilities)
 workshops/astrotrips/etl         ELT/ETL workshop
 workshops/astrotrips/ai          AI workshop
 workshops/astrotrips/mlops-101   MLOps 101 workshop
+workshops/astrotrips/dag-writing Dag writing workshop
 ```
